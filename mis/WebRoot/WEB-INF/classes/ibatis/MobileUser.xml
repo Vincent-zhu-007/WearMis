@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileUser">
+	<typeAlias alias="mobileUser" type="com.sg.mobile.entity.MobileUser" />
+	
+	<resultMap id="MobileUserResult" class="mobileUser">
+		<result property="id" column="Id" />
+		<result property="ownerUri" column="OwnerUri" />
+		<result property="userName" column="UserName" />
+		<result property="password" column="Password" />
+		<result property="displayName" column="DisplayName" />
+		<result property="companyCode" column="CompanyCode" />
+		<result property="orgStructure" column="OrgStructure" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+		<result property="extensionId" column="ExtensionId" />
+		<result property="trueName" column="TrueName" />
+		<result property="mobilePhone" column="MobilePhone" />
+		<result property="gender" column="Gender" />
+		<result property="mail" column="Mail" />
+		<result property="birthday" column="Birthday" />
+		<result property="headPortrait" column="HeadPortrait" />
+		<result property="province" column="Province" />
+		<result property="city" column="City" />
+		<result property="sign" column="Sign" />
+		<result property="isOpenExtension" column="IsOpenExtension" />
+		<result property="meiNo" column="MeiNo" />
+		<result property="mobileRole" column="MobileRole" />
+		<result property="webSiteRole" column="WebSiteRole" />
+	</resultMap>
+	
+	<resultMap id="MobileUserSimpleResult" class="mobileUser">
+		<result property="userName" column="UserName" />
+		<result property="password" column="Password" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri=#ownerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="userName">
+			<![CDATA[A.UserName=#userName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="displayName">
+			<![CDATA[A.DisplayName like CONCAT('%', #displayName#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="companyCode">
+			<![CDATA[A.CompanyCode=#companyCode#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="orgStructure">
+			<![CDATA[A.OrgStructure like CONCAT('%', #orgStructure#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="trueName">
+			<![CDATA[B.TrueName like CONCAT('%', #trueName#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="province">
+			<![CDATA[B.Province=#province#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="city">
+			<![CDATA[B.City=#city#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<sql id="findCriteriaByCheckDisplayName">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri!=#ownerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="displayName">
+			<![CDATA[A.DisplayName=#displayName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<sql id="findCriteriaIn">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri IN ($ownerUri$)]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="userName">
+			<![CDATA[A.UserName IN ($userName$)]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="displayName">
+			<![CDATA[A.DisplayName like CONCAT('%', #displayName#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="companyCode">
+			<![CDATA[A.CompanyCode=#companyCode#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="orgStructure">
+			<![CDATA[A.OrgStructure like CONCAT('%', #orgStructure#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="trueName">
+			<![CDATA[B.TrueName like CONCAT('%', #trueName#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="province">
+			<![CDATA[B.Province=#province#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="city">
+			<![CDATA[B.City=#city#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileUser">
+		INSERT INTO MobileUser (Id, OwnerUri, UserName, Password, DisplayName, CompanyCode,OrgStructure, Status, CreateTime, Creator) 
+		VALUES (#id#, #ownerUri#, #userName#, #password#, #displayName#, #companyCode#, #orgStructure#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileUser">
+		UPDATE MobileUser 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="password">
+				Password=#password#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="displayName">
+				DisplayName=#displayName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="companyCode">
+				CompanyCode=#companyCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="orgStructure">
+				OrgStructure=#orgStructure#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileUserResult" parameterClass="String">
+		SELECT A.*,B.* FROM MobileUser A
+		JOIN MobileUserExtension B ON A.Id=B.ExtensionId
+		WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileUser A
+		JOIN MobileUserExtension B ON A.Id=B.ExtensionId
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileUserResult">
+		SELECT A.*,B.* FROM MobileUser A
+		JOIN MobileUserExtension B ON A.Id=B.ExtensionId
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.OwnerUri DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileUserResult">
+		SELECT A.*,B.* FROM MobileUser A
+		JOIN MobileUserExtension B ON A.Id=B.ExtensionId
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.OwnerUri DESC
+	</select>
+	
+	<select id="findunpagebycheckdisplayname" parameterClass="map" resultMap="MobileUserResult">
+		SELECT A.*,B.* FROM MobileUser A
+		JOIN MobileUserExtension B ON A.Id=B.ExtensionId
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteriaByCheckDisplayName"/>
+		ORDER BY A.OwnerUri DESC
+	</select>
+	
+	<select id="findunpagein" parameterClass="map" resultMap="MobileUserResult">
+		SELECT A.*,B.* FROM MobileUser A
+		JOIN MobileUserExtension B ON A.Id=B.ExtensionId
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteriaIn"/>
+		ORDER BY A.OwnerUri DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MobileUser WHERE Id=#id#
+	</delete>
+	
+	<select id="findunjoin" parameterClass="map" resultMap="MobileUserSimpleResult">
+		SELECT A.UserName,A.Password FROM MobileUser A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+</sqlMap>

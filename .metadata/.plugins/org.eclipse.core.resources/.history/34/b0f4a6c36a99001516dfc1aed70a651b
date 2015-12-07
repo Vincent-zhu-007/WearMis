@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="WeiXinChannel">
+	<typeAlias alias="weiXinChannel" type="com.sg.weixin.entity.WeiXinChannel" />
+	
+	<resultMap id="WeiXinChannelResult" class="weiXinChannel">
+		<result property="id" column="Id" />
+		<result property="channelCodeName" column="ChannelCodeName" />
+		<result property="description" column="Description" />
+		<result property="channelHasChildren" column="ChannelHasChildren" />
+		<result property="channelLevelCode" column="ChannelLevelCode" />
+		<result property="channelParentCode" column="ChannelParentCode" />
+		<result property="displaySort" column="DisplaySort" />
+		<result property="type" column="Type" />
+		<result property="typeValue" column="TypeValue" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[A.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="channelCodeName">
+			<![CDATA[A.ChannelCodeName=#channelCodeName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="type">
+			<![CDATA[A.Type=#type#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="typeValue">
+			<![CDATA[A.TypeValue=#typeValue#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="weiXinChannel">
+		INSERT INTO WeiXinChannel (Id, ChannelCodeName, Description, ChannelHasChildren, ChannelLevelCode, ChannelParentCode,DisplaySort, Status, CreateTime, Creator) 
+		VALUES (#id#, #channelCodeName#, #description#, #channelHasChildren#, #channelLevelCode#, #channelParentCode#, #displaySort#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="weiXinChannel">
+		UPDATE WeiXinChannel 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="channelHasChildren">
+				ChannelHasChildren=#channelHasChildren#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="channelLevelCode">
+				ChannelLevelCode=#channelLevelCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="channelParentCode">
+				ChannelParentCode=#channelParentCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="displaySort">
+				DisplaySort=#displaySort#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="WeiXinChannelResult" parameterClass="String">
+		SELECT A.* FROM WeiXinChannel A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM WeiXinChannel A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="WeiXinChannelResult">
+		SELECT A.* FROM WeiXinChannel A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.DisplaySort ASC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="WeiXinChannelResult">
+		SELECT A.* FROM WeiXinChannel A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.DisplaySort ASC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM WeiXinChannel WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

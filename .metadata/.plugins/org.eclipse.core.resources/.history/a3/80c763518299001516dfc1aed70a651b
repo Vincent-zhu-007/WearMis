@@ -1,0 +1,350 @@
+package com.sg.weixin.service;
+
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.springframework.stereotype.Service;
+
+import com.sg.mobile.entity.MobileServerConfig;
+import com.sg.mobile.entity.WebSiteMenuConfig;
+import com.sg.service.BaseEntityManager;
+import com.sg.util.MemCached;
+import com.sg.util.StringUtil;
+import com.sg.weixin.dao.WeiXinChannelDao;
+import com.sg.weixin.entity.WeiXinChannel;
+
+@Service
+public class WeiXinChannelService implements BaseEntityManager<WeiXinChannel> {
+	@Resource
+	private WeiXinChannelDao weiXinChannelDao;
+	
+	@Override
+	public void create(WeiXinChannel entity) {
+		// TODO Auto-generated method stub
+		weiXinChannelDao.create(entity);
+	}
+
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		weiXinChannelDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<WeiXinChannel> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return weiXinChannelDao.find(params, pageParams);
+	}
+
+	@Override
+	public WeiXinChannel get(String id) {
+		// TODO Auto-generated method stub
+		return weiXinChannelDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<WeiXinChannel> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return weiXinChannelDao.findForUnPage(params);
+	}
+
+	@Override
+	public void update(WeiXinChannel entity) {
+		// TODO Auto-generated method stub
+		weiXinChannelDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return weiXinChannelDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<WeiXinChannel> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("频道列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("频道编码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("描述");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("包含子频道");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("级别编码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("父频道编码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("顺序");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 6);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 7);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				WeiXinChannel model = (WeiXinChannel) list.get(i);
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getChannelCodeName());
+				row.createCell((short) 1).setCellValue(model.getDescription());
+				row.createCell((short) 2).setCellValue(model.getChannelHasChildren());
+				row.createCell((short) 3).setCellValue(model.getChannelLevelCode());
+				row.createCell((short) 4).setCellValue(model.getChannelParentCode());
+				row.createCell((short) 5).setCellValue(model.getDisplaySort());
+				row.createCell((short) 6).setCellValue(model.getStatus());
+				cell = row.createCell((short) 7);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public List<WeiXinChannel> GetWeiXinChannelCache() {
+		List<WeiXinChannel> list = new ArrayList<WeiXinChannel>();
+		
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("WeiXinChannel");
+			if(obj != null && !obj.equals("")) {
+				String json = MemCached.getInstance().get("WeiXinChannel").toString();
+				
+				JSONArray array = JSONArray.fromObject(json);
+			    for(Iterator iter = array.iterator(); iter.hasNext();){
+			        JSONObject jsonObject = (JSONObject)iter.next();
+			        list.add((WeiXinChannel)JSONObject.toBean(jsonObject, WeiXinChannel.class));
+			    }
+			}else {
+				Map<String, Object> params = new HashMap<String, Object>();
+		    	params.put("status", "Y");
+				list = this.findForUnPage(params);
+				
+				JSONArray jsonObject = JSONArray.fromObject(list);
+				
+				MemCached.getInstance().set("WeiXinChannel", jsonObject);
+			}
+		}
+		
+		return list;
+	}
+	
+	public void ClearWeiXinChannelCache() {
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("WeiXinChannel");
+			if(obj != null && !obj.equals("")) {
+				MemCached.getInstance().set("WeiXinChannel", "");
+			}
+		}
+	}
+	
+	public JSONArray buildWeiXinChannelTree(List<WeiXinChannel> weiXinChannels) {
+		JSONArray jSONArray = new JSONArray();
+		
+		if (weiXinChannels != null && weiXinChannels.size() > 0) {
+			for (int i = 0; i < weiXinChannels.size(); i++) {
+				
+				JSONObject jsonObject1 = new JSONObject();
+				jsonObject1.put("id", weiXinChannels.get(i).getChannelCodeName());
+				jsonObject1.put("text", weiXinChannels.get(i).getDescription());
+				
+				List<WeiXinChannel> weiXinChannelCache = this.GetWeiXinChannelCache();
+				List<WeiXinChannel> weiXinChildChannel = new ArrayList<WeiXinChannel>();
+				for (WeiXinChannel entity : weiXinChannelCache) {
+					if(entity.getChannelParentCode().equals(weiXinChannels.get(i).getChannelCodeName())) {
+						weiXinChildChannel.add(entity);
+					}
+				}
+				
+				if (weiXinChildChannel != null && weiXinChildChannel.size() > 0) {
+					jsonObject1.put("children", buildWeiXinChannelTree(weiXinChildChannel));
+				}
+				
+				jSONArray.add(jsonObject1);
+			}
+		}
+		return jSONArray;
+	}
+	
+	public Map<String, Object> getButtonWeiXinChannel(List<WeiXinChannel> weiXinChannels) {
+		Map<String, Object> map = new HashMap<String, Object>();
+		process(weiXinChannels, map);
+		return map;
+	}
+	
+	public void process(List<WeiXinChannel> weiXinChannels, Map<String, Object> map) {
+		if (weiXinChannels != null && weiXinChannels.size() > 0) {
+			for (int i = 0; i < weiXinChannels.size(); i++) {
+				List<WeiXinChannel> weiXinChannelCache = this.GetWeiXinChannelCache();
+				List<WeiXinChannel> weiXinChildChannel = new ArrayList<WeiXinChannel>();
+				for (WeiXinChannel entity : weiXinChannelCache) {
+					if(entity.getChannelParentCode().equals(weiXinChannels.get(i).getChannelCodeName())) {
+						weiXinChildChannel.add(entity);
+					}
+				}
+				
+				if (weiXinChildChannel != null && weiXinChildChannel.size() > 0) {
+					process(weiXinChildChannel, map);
+				}
+				
+				map.put(weiXinChannels.get(i).getChannelCodeName(), weiXinChannels.get(i).getDescription());
+			}
+		}
+	}
+	
+	public String pushWeiXinMenuJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara) {
+    	String paraJson = urlPara;
+    	JSONObject jsonObjectPara = JSONObject.fromObject(paraJson);
+    	
+    	String webSiteRole = "";
+		if(jsonObjectPara.containsKey("webSiteRole")){
+			webSiteRole = jsonObjectPara.opt("webSiteRole").toString();
+		}
+		
+		List<WeiXinChannel> weiXinChannels = GetWeiXinChannelCache();
+		
+		List<WeiXinChannel> level2WeiXinChannels = new ArrayList<WeiXinChannel>();
+		
+		for (WeiXinChannel entity : weiXinChannels) {
+			if(entity.getChannelLevelCode().equals("Level2")) {
+				level2WeiXinChannels.add(entity);
+			}
+		}
+		
+		JSONArray jSONArray = buildWeiXinMenuTree(level2WeiXinChannels);
+		
+		return jSONArray.toString();
+	}
+	
+	public JSONArray buildWeiXinMenuTree(List<WeiXinChannel> level2WeiXinChannels) {
+		JSONArray jSONArray = new JSONArray();
+		
+		if (level2WeiXinChannels != null && level2WeiXinChannels.size() > 0) {
+			for (int i = 0; i < level2WeiXinChannels.size(); i++) {
+				
+				WeiXinChannel level2WeiXinChannel = level2WeiXinChannels.get(i);
+				
+				String type2 = level2WeiXinChannel.getType();
+				String name2 = level2WeiXinChannel.getDescription();
+				String key2= level2WeiXinChannel.getTypeValue() == null ? "" : level2WeiXinChannel.getTypeValue();
+				String channelParentCode = level2WeiXinChannel.getChannelParentCode();
+				
+				JSONObject jsonObject1 = new JSONObject();
+				jsonObject1.put("name", name2);
+				
+				List<WeiXinChannel> weiXinChannels = GetWeiXinChannelCache();
+				List<WeiXinChannel> buttonWeiXinChannels = new ArrayList<WeiXinChannel>();
+				
+				for (WeiXinChannel buttonWeiXinChannel : weiXinChannels) {
+					if(buttonWeiXinChannel.getChannelLevelCode().equals("Button") && buttonWeiXinChannel.getChannelParentCode().equals(channelParentCode)) {
+						buttonWeiXinChannels.add(buttonWeiXinChannel);
+					}
+				}
+				
+				if(buttonWeiXinChannels != null && buttonWeiXinChannels.size() > 0){
+					
+					
+					JSONArray jsonArrayButton = new JSONArray();
+					
+					for (WeiXinChannel buttonWeiXinChannel : buttonWeiXinChannels) {
+						JSONObject jsonObjectButton = new JSONObject();
+						
+						String type3 = buttonWeiXinChannel.getType();
+						String name3 = buttonWeiXinChannel.getDescription();
+						String key3= buttonWeiXinChannel.getTypeValue() == null ? "" : buttonWeiXinChannel.getTypeValue();
+						
+						jsonObjectButton.put("name", name3);
+						jsonObjectButton.put("type", type3);
+						
+						if(type3.equals("click") || type3.equals("scancode_push")){
+							jsonObjectButton.put("key", key3);
+						}else if (type2.equals("view")) {
+							jsonObjectButton.put("url", key3);
+						}
+						
+						jsonArrayButton.add(jsonObjectButton);
+					}
+					
+					
+				}else {
+					jsonObject1.put("type", type2);
+					
+					if(type2.equals("click") || type2.equals("scancode_push")){
+						jsonObject1.put("key", key2);
+					}else if (type2.equals("view")) {
+						jsonObject1.put("url", key2);
+					}
+				}
+				
+				
+				jSONArray.add(jsonObject1);
+			}
+		}
+		return jSONArray;
+	}
+}

@@ -1,0 +1,67 @@
+1436750184811	Delete element
+1436750234079	Rename resource 'PocUserFileFileType.xml'
+1436750463543	Delete elements
+1436750559950	Delete elements
+1436750643112	Delete elements
+1436750677320	Delete elements
+1436751125841	Delete element
+1436751166385	Delete element
+1436751211008	Delete elements
+1436751235615	Delete elements
+1436751264390	Delete elements
+1436751281464	Delete element
+1436751288327	Delete element
+1436751387206	Delete elements
+1436751410326	Delete elements
+1436759443171	Delete elements
+1436759467680	Delete elements
+1436759479309	Delete elements
+1436759518525	Delete elements
+1436763939960	Delete element
+1436763946731	Delete element
+1436763951911	Delete element
+1436764867617	Rename package 'com.sg.poc.util'
+1436764889662	Rename package 'com.sg.poc.xml'
+1436765225947	Delete element
+1436765236540	Delete element
+1436765248598	Delete element
+1436767448691	Delete element
+1436767455382	Delete element
+1436767460351	Delete element
+1436767464694	Delete element
+1436769113884	Delete element
+1436769120268	Delete element
+1436769126105	Delete element
+1436769132267	Delete element
+1436769137864	Delete element
+1436769145272	Delete element
+1436769148720	Delete element
+1436769152671	Delete element
+1436769194378	Rename package 'com.sg.poc.core'
+1436769240456	Rename type 'PocFilter'
+1436772014802	Move files
+1436772024010	Delete element
+1436775001439	Rename resource 'PocCompany.xml'
+1436775028057	Delete elements
+1436775041606	Rename resource 'PocOrgStructure.xml'
+1436775054913	Delete elements
+1436775062785	Rename resource 'PocServerConfig.xml'
+1436775070430	Rename resource 'PocUser.xml'
+1436775081648	Rename resource 'PocUserExtension.xml'
+1436775090782	Delete elements
+1436775097136	Rename resource 'PocVersionConfig.xml'
+1436779285021	Delete elements
+1436779318812	Rename resource 'poccompany_list.jsp'
+1436781094750	Rename resource 'poccompany_addorupdate.jsp'
+1436781344325	Rename resource 'pocorgstructure_addorupdate.jsp'
+1436781533551	Rename resource 'pocorgstructurenode_addorupdate.jsp'
+1436782135429	Rename resource 'pocserverconfig_list.jsp'
+1436782458902	Rename resource 'pocserverconfig_addorupdate.jsp'
+1436782597492	Rename resource 'pocserverconfig_copy.jsp'
+1436785482539	Rename resource 'pocversionconfig_list.jsp'
+1436786657775	Rename resource 'pocversionconfig_addorupdate.jsp'
+1436787092460	Rename resource 'pocuser_list.jsp'
+1436788082618	Rename resource 'pocuser_addorupdate.jsp'
+1436788280796	Rename resource 'pocuser_import_mei.jsp'
+1436852822157	Rename resource 'PocContact.xml'
+1436853024952	Rename resource 'PocContactMember.xml'

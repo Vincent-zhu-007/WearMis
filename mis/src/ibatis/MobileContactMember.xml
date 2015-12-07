@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileContactMember">
+	<typeAlias alias="mobileContactMember" type="com.sg.mobile.entity.MobileContactMember" />
+	
+	<resultMap id="MobileContactMemberResult" class="mobileContactMember">
+		<result property="id" column="Id" />
+		<result property="ownerUri" column="OwnerUri" />
+		<result property="displayName" column="DisplayName" />
+		<result property="shortNum" column="ShortNum" />
+		<result property="mobilePhone" column="MobilePhone" />
+		<result property="numButton" column="NumButton" />
+		<result property="listFileName" column="ListFileName" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri=#ownerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="shortNum">
+			<![CDATA[A.ShortNum=#shortNum#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="mobilePhone">
+			<![CDATA[A.MobilePhone=#mobilePhone#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="numButton">
+			<![CDATA[A.NumButton=#numButton#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="listFileName">
+			<![CDATA[A.ListFileName=#listFileName#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileContactMember">
+		INSERT INTO MobileContactMember (Id, OwnerUri, DisplayName, ShortNum, MobilePhone, NumButton, ListFileName) 
+		VALUES (#id#, #ownerUri#, #displayName#, #shortNum#, #mobilePhone#, #numButton#, #listFileName#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileContactMember">
+		UPDATE MobileContactMember 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="ownerUri">
+				OwnerUri=#ownerUri#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="displayName">
+				DisplayName=#displayName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="shortNum">
+				ShortNum=#shortNum#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="mobilePhone">
+				MobilePhone=#mobilePhone#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="numButton">
+				NumButton=#numButton#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="listFileName">
+				ListFileName=#listFileName#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileContactMemberResult" parameterClass="String">
+		SELECT A.* FROM MobileContactMember A
+		WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileContactMember A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileContactMemberResult">
+		SELECT A.* FROM MobileContactMember A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.NumButton ASC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileContactMemberResult">
+		SELECT A.* FROM MobileContactMember A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.NumButton ASC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MobileContactMember WHERE Id=#id#
+	</delete>
+</sqlMap>

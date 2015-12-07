@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileCardReaderReport">
+	<typeAlias alias="mobileCardReaderReport" type="com.sg.mobile.entity.MobileCardReaderReport" />
+	
+	<resultMap id="MobileCardReaderReportResult" class="mobileCardReaderReport">
+		<result property="id" column="Id" />
+		<result property="ownerUri" column="OwnerUri" />
+		<result property="equipmentNo" column="EquipmentNo" />
+		<result property="month" column="Month" />
+		<result property="day" column="Day" />
+		<result property="hour" column="Hour" />
+		<result property="status" column="Status" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri=#ownerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="equipmentNo">
+			<![CDATA[A.EquipmentNo=#equipmentNo#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="month">
+			<![CDATA[A.Month=#month#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="day">
+			<![CDATA[A.Day=#day#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="hour">
+			<![CDATA[A.Hour=#hour#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileCardReaderReport">
+		INSERT INTO MobileCardReaderReport (Id, OwnerUri, EquipmentNo, Month, Day, Hour, Status, CreateTime, Creator) 
+		VALUES (#id#, #ownerUri#, #equipmentNo#, #month#, #day#, #hour#, #status#, #createTime#, #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileCardReaderReport">
+		UPDATE MobileCardReaderReport 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="ownerUri">
+				OwnerUri=#ownerUri#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="equipmentNo">
+				EquipmentNo=#equipmentNo#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileCardReaderReportResult" parameterClass="String">
+		SELECT A.* FROM MobileCardReaderReport A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileCardReaderReport A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileCardReaderReportResult">
+		SELECT A.* FROM MobileCardReaderReport A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileCardReaderReportResult">
+		SELECT A.* FROM MobileCardReaderReport A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="String">
+		DELETE FROM MobileCardReaderReport WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

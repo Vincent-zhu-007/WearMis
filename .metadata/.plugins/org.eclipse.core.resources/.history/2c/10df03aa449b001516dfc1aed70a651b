@@ -1,0 +1,432 @@
+package com.sg.mobile.service;
+
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.sg.mobile.dao.MobileServerConfigDao;
+import com.sg.mobile.entity.MobileCompany;
+import com.sg.mobile.entity.MobileServerConfig;
+import com.sg.mobile.util.XmlUtil;
+import com.sg.service.BaseEntityManager;
+import com.sg.service.CacheConfigService;
+import com.sg.service.CodeService;
+import com.sg.service.ProvinceService;
+import com.sg.util.FileUtil;
+import com.sg.util.MemCached;
+import com.sg.weixin.service.WeiXinInMobileService;
+import com.sg.weixin.service.WeiXinUserService;
+
+@Service
+public class MobileServerConfigService implements BaseEntityManager<MobileServerConfig> {
+	@Resource
+	private MobileServerConfigDao mobileServerConfigDao;
+	
+	@Autowired
+	private MobileVersionConfigService mobileVersionConfigService;
+	
+	@Autowired
+	private MobileUserService mobileUserService;
+	
+	@Autowired
+	private MobileCompanyService mobileCompanyService;
+	
+	@Autowired
+	private ProvinceService provinceService;
+	
+	@Autowired
+	private CacheConfigService cacheConfigService;
+	
+	@Autowired
+	private CodeService codeService;
+	
+	@Autowired
+	private MobileMenuService mobileMenuService;
+	
+	@Autowired
+	private MobileContactService mobileContactService;
+	
+	@Autowired
+	private MobileAppService mobileAppService;
+	
+	@Autowired
+	private MobileAppConfigService mobileAppConfigService;
+	
+	@Autowired
+	private WebSiteMenuService webSiteMenuService;
+	
+	@Autowired
+	private MobileCardReaderReportService mobileCardReaderReportService;
+	
+	@Autowired
+	private MobileMessageService mobileMessageService;
+	
+	@Autowired
+	private MobileUserLocationService mobileUserLocationService;
+	
+	@Autowired
+	private MobilePowerService mobilePowerService;
+	
+	@Autowired
+	private WeiXinUserService weiXinUserService;
+	
+	@Autowired
+	private MobileTimeService mobileTimeService;
+	
+	@Autowired
+	private WeiXinInMobileService weiXinInMobileService;
+
+	@Override
+	public void create(MobileServerConfig entity) {
+		// TODO Auto-generated method stub
+		mobileServerConfigDao.create(entity);
+	}
+
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		mobileServerConfigDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileServerConfig> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return mobileServerConfigDao.find(params, pageParams);
+	}
+
+	@Override
+	public MobileServerConfig get(String id) {
+		// TODO Auto-generated method stub
+		return mobileServerConfigDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileServerConfig> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return mobileServerConfigDao.findForUnPage(params);
+	}
+
+	@Override
+	public void update(MobileServerConfig entity) {
+		// TODO Auto-generated method stub
+		mobileServerConfigDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return mobileServerConfigDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public List<MobileServerConfig> getMobileServerConfigCache() {
+		List<MobileServerConfig> list = new ArrayList<MobileServerConfig>();
+		
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("MobileServerConfig");
+			if(obj != null && !obj.equals("")) {
+				String json = MemCached.getInstance().get("MobileServerConfig").toString();
+				
+				JSONArray array = JSONArray.fromObject(json);
+			    for(Iterator iter = array.iterator(); iter.hasNext();){
+			        JSONObject jsonObject = (JSONObject)iter.next();
+			        list.add((MobileServerConfig)JSONObject.toBean(jsonObject, MobileServerConfig.class));
+			    }
+			}else {
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("status", "Y");
+				list = this.findForUnPage(params);
+				
+				JSONArray jsonObject = JSONArray.fromObject(list);
+				
+				MemCached.getInstance().set("MobileServerConfig", jsonObject);
+			}
+		}
+		
+		return list;
+	}
+	
+	public void clearMobileServerConfigCache() {
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("MobileServerConfig");
+			if(obj != null && !obj.equals("")) {
+				MemCached.getInstance().set("MobileServerConfig", "");
+			}
+		}
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<MobileServerConfig> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("Mobile服务列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("公司编码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("主机");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("端口");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("请求类型");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("应用名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("MEDIA类型");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 6);
+			cell.setCellValue("描述");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 7);
+			cell.setCellValue("地址第一部分");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 8);
+			cell.setCellValue("地址第二部分");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 9);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 10);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				MobileServerConfig model = (MobileServerConfig) list.get(i);
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getCompanyCode());
+				row.createCell((short) 1).setCellValue(model.getHost());
+				row.createCell((short) 2).setCellValue(model.getPort());
+				row.createCell((short) 3).setCellValue(model.getHttpMethod());
+				row.createCell((short) 4).setCellValue(model.getAppName());
+				row.createCell((short) 5).setCellValue(model.getContentType());
+				row.createCell((short) 6).setCellValue(model.getDescription());
+				row.createCell((short) 7).setCellValue(model.getUrlPart1());
+				row.createCell((short) 8).setCellValue(model.getUrlPart2());
+				row.createCell((short) 9).setCellValue(model.getStatus());
+				cell = row.createCell((short) 10);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public String serverPostProcess(MobileServerConfig mobileServerConfig, String requestXml, String urlPara){
+		String responseStatus = "";
+		
+		String urlPart1 = mobileServerConfig.getUrlPart1();
+		String contentType = mobileServerConfig.getContentType();
+		
+		Document doc = null;
+		
+		if(requestXml != null && !requestXml.equals("")){
+			try {
+				doc = DocumentHelper.parseText(requestXml);
+			} catch (DocumentException e) {
+				// TODO Auto-generated catch block
+				System.out.println(e.getMessage());
+			}
+		}
+		
+		if(contentType.equals("text/json")){
+			if(urlPart1.equals("version")){
+				responseStatus = mobileVersionConfigService.getMobileVersionConfigJson(mobileServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("mobile.mobilearea.getmobilearea")) {
+				responseStatus = provinceService.getPocAreaJson(mobileServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("mobile.cacheconfig.getcacheconfigetagbycodename")) {
+				responseStatus = cacheConfigService.getCacheConfigByCodeName(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.systemcode.getcodebycategory")){
+				responseStatus = codeService.getCodeByCategoryJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.systemcode.getcode")){
+				responseStatus = codeService.getCodeJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("poc.pocuser.getpocusersafecode")){
+				responseStatus = mobileUserService.getMobileUserSafeCode(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileuser.getmobileusersafecode")){
+				responseStatus = mobileUserService.getMobileUserSafeCode(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilemenu.getmobileactionjson")){
+				responseStatus = mobileMenuService.getMobileActionJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilecontact.getmobilecontactbyowneruriandlisttypejson")){
+				responseStatus = mobileContactService.getMobileContactByOwnerUriAndListTypeJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilecontactmember.getmobilecontactmemberbyowneruriandlisttypejson")){
+				responseStatus = mobileContactService.getMobileContactMemberByOwnerUriAndListTypeJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileapp.getmobileappbyowneruriandlisttypejson")){
+				responseStatus = mobileAppService.getMobileAppByOwnerUriAndListTypeJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileappitem.getmobileappitembyowneruriandlisttypejson")){
+				responseStatus = mobileAppService.getMobileAppItemByOwnerUriAndListTypeJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileappconfig.getmobileappconfigcachejson")){
+				responseStatus = mobileAppConfigService.getMobileAppConfigCacheJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileappconfig.clearmobileappconfigcachejson")){
+				responseStatus = mobileAppConfigService.clearMobileAppConfigCacheJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.websitemenu.initwebsitemenujson")){
+				responseStatus = webSiteMenuService.initWebSiteMenuJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilecardreaderreport.createmobilecardreaderreportjson")){
+				responseStatus = mobileCardReaderReportService.createMobileCardReaderReportJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileuser.sendmobilelockjson")){
+				responseStatus = mobileUserService.sendMobileLockJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileuser.sendmobileclearjson")){
+				responseStatus = mobileUserService.sendMobileClearJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilemessage.createmobilemessagejson")){
+				responseStatus = mobileMessageService.createMobileMessageJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilemessage.editmobilemessagejson")){
+				responseStatus = mobileMessageService.editMobileMessageJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilemessage.deletemobilemessagejson")){
+				responseStatus = mobileMessageService.deleteMobileMessageJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilemessage.sendmobilemessagejson")){
+				responseStatus = mobileMessageService.sendMobileMessageJson(mobileServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("mobile.mobileuserlocation.create")) {
+				responseStatus = mobileUserLocationService.createMobileUserLocationData(mobileServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("mobile.mobileuserlocation.createbymin")) {
+				responseStatus = mobileUserLocationService.createMobileUserLocationJsonByMin(mobileServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("mobile.mobilepower.createbymin")) {
+				responseStatus = mobilePowerService.createMobilePowerJsonByMin(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobilecardreaderreport.createbymin")){
+				responseStatus = mobileCardReaderReportService.createMobileCardReaderReportJsonByMin(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("weixin.weixinuser.getweixinuserbyopenidfromfwhjson")){
+				responseStatus = weiXinUserService.getWeiXinUserByOpenIdFromFwhJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("weixin.weixinuser.createweixinuserfromfwhjson")){
+				responseStatus = weiXinUserService.createWeiXinUserFromFwhJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobiletime.getservertimejson")){
+				responseStatus = mobileTimeService.getServerTimeJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileuserlocation.getmobileuserlocationbyopenidjson")){
+				responseStatus = mobileUserLocationService.getMobileUserLocationByOpenIdJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileuser.sendmobilelisteningjson")){
+				responseStatus = mobileUserService.sendMobileListeningJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("weixin.weixininmobile.createweixininmobilejson")){
+				responseStatus = weiXinInMobileService.createWeiXinInMobileJson(mobileServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("mobile.mobileuser.sendmobilelisteningfromfwhjson")){
+				responseStatus = mobileUserService.sendMobileListeningJson(mobileServerConfig, doc, urlPara);
+			}
+		}else {
+			if(urlPart1.equals("mobile.changepwd")){
+				responseStatus = mobileUserService.changeMobileUserPassword(mobileServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("mobile.safecode")) {
+				responseStatus = mobileUserService.createSafeCode(mobileServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("mobile.security")) {
+				responseStatus = mobileUserService.security(mobileServerConfig, doc, urlPara);
+			}
+		}
+		
+		return responseStatus;
+	}
+	
+	public String serverPostFileProcess(MobileServerConfig mobileServerConfig, InputStream is, String urlPara, String savePath){
+		String responseStatus = "";
+		
+		String urlPart1 = mobileServerConfig.getUrlPart1();
+		
+		try {
+			String fileName = urlPara.split("/")[0];
+			String dirName = urlPara.split("/")[1];
+			
+			if(urlPart1.equals("mobile.common.upload")){
+				responseStatus = FileUtil.getSaveUrlByStream(fileName, dirName, savePath, is);
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return responseStatus; 
+	}
+	
+	public MobileCompany getMobileCompanyByComapnyCode(String companyCode){
+		List<MobileCompany> mobileCompanys = mobileCompanyService.getMobileCompanyCache();
+		
+		for (MobileCompany mobileCompany : mobileCompanys) {
+			if(mobileCompany.getCodeName().equals(companyCode)){
+				return mobileCompany;
+			}
+		}
+		
+		return null;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public Map<String, Object> getMobileFileTypeMap(){
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		Document doc = XmlUtil.getXmlDoc("MobileFileType.xml");
+		Element rootElement = doc.getRootElement();
+		Iterator rootIter = rootElement.elementIterator();
+		
+		while (rootIter.hasNext()) {
+			Element mobileFileTypeElement = (Element) rootIter.next();
+			
+			String id = mobileFileTypeElement.attribute("id").getValue();
+			String type = mobileFileTypeElement.attribute("type").getValue();
+			map.put(id, type);
+		}
+		
+		return map;
+	}
+}

@@ -1,0 +1,111 @@
+package com.sg.util;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import net.sf.json.JSONObject;
+
+import org.apache.http.HttpVersion;
+import org.apache.http.client.fluent.Async;
+import org.apache.http.client.fluent.Content;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.entity.ContentType;
+
+public class WxUtil {
+	public static String sendGet(String strUrl) throws Exception {
+		ExecutorService threadpool = Executors.newFixedThreadPool(2);
+        Async async = Async.newInstance().use(threadpool);
+        
+        Request request = Request.Post(strUrl)
+				.addHeader("Content-Type", "text/xml")
+		        .useExpectContinue()
+		        .version(HttpVersion.HTTP_1_1);
+        
+        Future<Content> future = async.execute(request, new FutureCallback<Content>() {
+
+			@Override
+			public void cancelled() {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void completed(Content content) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void failed(Exception e) {
+				// TODO Auto-generated method stub
+				
+			}
+        });
+        
+        try {
+        	String result = future.get().asString();
+        	return result;
+        } finally {
+        	threadpool.shutdown();
+        }
+    }
+	
+	public static String sendPostJson(String strUrl, String json) throws Exception {
+		ExecutorService threadpool = Executors.newFixedThreadPool(2);
+        Async async = Async.newInstance().use(threadpool);
+        
+        Request request = Request.Post(strUrl)
+				.addHeader("Content-Type", "text/json")
+		        .useExpectContinue()
+		        .version(HttpVersion.HTTP_1_1)
+        		.bodyString(json, ContentType.APPLICATION_JSON);
+        
+        Future<Content> future = async.execute(request, new FutureCallback<Content>() {
+
+			@Override
+			public void cancelled() {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void completed(Content content) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void failed(Exception e) {
+				// TODO Auto-generated method stub
+				
+			}
+        });
+        
+        try {
+        	String result = future.get().asString();
+        	return result;
+        } finally {
+        	threadpool.shutdown();
+        }
+    }
+	
+	public static String processWxRequestByGetToken(String appId, String appSecret){
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid="+appId+"&secret="+appSecret+"";
+		
+		try {
+			String data = sendGet(url);
+			jsonObjectResult.put("result", "1");
+			jsonObjectResult.put("data", data);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("data", e.getMessage());
+		}
+		
+		return jsonObjectResult.toString();
+	}
+}

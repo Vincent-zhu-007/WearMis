@@ -1,0 +1,1126 @@
+package com.sg.mobile.service;
+
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.sg.mobile.dao.MobileUserDao;
+import com.sg.mobile.dao.MobileUserExtensionDao;
+import com.sg.mobile.entity.MobileCompany;
+import com.sg.mobile.entity.MobileContactMember;
+import com.sg.mobile.entity.MobileRpcParamenter;
+import com.sg.mobile.entity.MobileServerConfig;
+import com.sg.mobile.entity.MobileUser;
+import com.sg.mobile.util.DigestAuthentication;
+import com.sg.mobile.util.UrlUtil;
+import com.sg.mobile.util.XmlUtil;
+import com.sg.service.BaseEntityManager;
+import com.sg.service.CodeService;
+import com.sg.util.MD5;
+import com.sg.util.MapUtil;
+import com.sg.util.SendMqttUtil;
+import com.sg.weixin.entity.WeiXinInMobile;
+import com.sg.weixin.entity.WeiXinUser;
+import com.sg.weixin.service.WeiXinInMobileService;
+import com.sg.weixin.service.WeiXinUserService;
+
+@Service
+public class MobileUserService implements BaseEntityManager<MobileUser> {
+	@Resource
+	private MobileUserDao mobileUserDao;
+	
+	@Resource
+	private MobileUserExtensionDao mobileUserExtensionDao;
+	
+	@Autowired
+	private CodeService codeService;
+	
+	@Autowired
+	private MobileCompanyService mobileCompanyService;
+	
+	@Autowired
+	private MobileSyncDataService mobileSyncDataService;
+	
+	@Autowired
+	private MobileContactService mobileContactService;
+	
+	@Autowired
+	private MobileContactMemberService mobileContactMemberService;
+	
+	@Autowired
+	private MobileAppService mobileAppService;
+	
+	@Autowired
+	private WeiXinUserService weiXinUserService;
+	
+	@Autowired
+	private WeiXinInMobileService weiXinInMobileService;
+	
+	@Transactional
+	@Override
+	public void create(MobileUser entity) {
+		// TODO Auto-generated method stub
+		mobileUserExtensionDao.create(entity);
+		mobileUserDao.create(entity);
+	}
+	
+	@Transactional
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		mobileUserExtensionDao.delete(id);
+		mobileUserDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileUser> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return mobileUserDao.find(params, pageParams);
+	}
+
+	@Override
+	public MobileUser get(String id) {
+		// TODO Auto-generated method stub
+		return mobileUserDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileUser> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return mobileUserDao.findForUnPage(params);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<MobileUser> findForUnPageByCheckDisplayName(Map params) {
+		// TODO Auto-generated method stub
+		return mobileUserDao.findUnPageByCheckDisplayName(params);
+	}
+	
+	@Transactional
+	@Override
+	public void update(MobileUser entity) {
+		// TODO Auto-generated method stub
+		mobileUserExtensionDao.update(entity);
+		mobileUserDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return mobileUserDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<MobileUser> findUnJoin(Map params){
+		return mobileUserDao.findUnJoin(params);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<MobileUser> findUnPageIn(Map params){
+		return mobileUserDao.findUnPageIn(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<MobileUser> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			Map<String, Object> genderMap = codeService.getCodeCacheMapByCategory("GENDER");
+			Map<String, Object> statusMap = codeService.getCodeCacheMapByCategory("STATUS");
+			
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("Mobile用户列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("用户地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("用户名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("显示名称");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("真实姓名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("终端号码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("性别");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 6);
+			cell.setCellValue("邮箱地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 7);
+			cell.setCellValue("生日");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 8);
+			cell.setCellValue("头像路径 ");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 9);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 10);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				MobileUser model = (MobileUser) list.get(i);
+				
+				String gender = "";
+				if(model.getGender() != null && !model.getGender().equals("")){
+					gender = genderMap.get(model.getGender()).toString();
+				}
+				
+				String status = statusMap.get(model.getStatus()).toString();
+				
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getOwnerUri());
+				row.createCell((short) 1).setCellValue(model.getUserName());
+				row.createCell((short) 2).setCellValue(model.getDisplayName());
+				row.createCell((short) 3).setCellValue(model.getTrueName());
+				row.createCell((short) 4).setCellValue(model.getMobilePhone());
+				row.createCell((short) 5).setCellValue(gender);
+				row.createCell((short) 6).setCellValue(model.getMail());
+				row.createCell((short) 7).setCellValue(model.getBirthday());
+				row.createCell((short) 8).setCellValue(model.getHeadPortrait());
+				row.createCell((short) 9).setCellValue(status);
+				cell = row.createCell((short) 10);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public Map<String, Object> getMobileUserMap(String targetOwnerUri){
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		Map<String, Object> targetMobileUserParams = new HashMap<String, Object>();
+		targetMobileUserParams.put("ownerUri", targetOwnerUri);
+
+		List<MobileUser> targetMobileUsers = findForUnPage(targetMobileUserParams);
+		
+		if(targetMobileUsers != null && targetMobileUsers.size() > 0){
+			MobileUser targetMobileUser = targetMobileUsers.get(0);
+			
+			String orgStructure = targetMobileUser.getOrgStructure();
+			
+			if(orgStructure != null && !orgStructure.equals("")){
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("orgStructure", orgStructure);
+				params.put("status", "Y");
+				List<MobileUser> list = findForUnPage(params);
+				
+				for (MobileUser mobileUser : list) {
+					/*if(mobileUser.getOwnerUri().equals(targetOwnerUri)){
+						continue;
+					}*/
+					
+					map.put(mobileUser.getOwnerUri(), mobileUser.getDisplayName());
+				}
+				
+				map = MapUtil.mapSortByKey(map);
+			}
+		}
+		
+		return map;
+	}
+	
+	public List<MobileUser> getMobileUserByCompanyCode(String companyCode){
+		List<MobileUser> list = new ArrayList<MobileUser>();
+		
+		if(companyCode != null && !companyCode.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", companyCode);
+			params.put("status", "Y");
+			list = findForUnPage(params);
+		}
+		
+		return list;
+	}
+	
+	public MobileUser getMobileUserByOwnerUriAndCompanyCode(String ownerUri, String companyCode){
+		if(ownerUri != null && !ownerUri.equals("") && companyCode != null && !companyCode.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("ownerUri", ownerUri);
+			params.put("companyCode", companyCode);
+			params.put("status", "Y");
+			
+			List<MobileUser> list = findForUnPage(params);
+			
+			if(list != null && list.size() > 0){
+				return list.get(0);
+			}
+		}
+		
+		return null;
+	}
+	
+	public MobileUser getMobileUserByOwnerUri(String ownerUri){
+		if(ownerUri != null && !ownerUri.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("ownerUri", ownerUri);
+			params.put("status", "Y");
+			
+			List<MobileUser> list = findForUnPage(params);
+			
+			if(list != null && list.size() > 0){
+				return list.get(0);
+			}
+		}
+		
+		return null;
+	}
+	
+	public MobileUser getMobileUserByUserName(String userName){
+		if(userName != null && !userName.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("userName", userName);
+			params.put("status", "Y");
+			
+			List<MobileUser> list = findForUnPage(params);
+			
+			if(list != null && list.size() > 0){
+				return list.get(0);
+			}
+		}
+		
+		return null;
+	}
+	
+	public String changeMobileUserPassword(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String ownerUri = mobileServerConfig.getUrlPart3();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", ownerUri);
+		List<MobileUser> mobileUsers = findForUnPage(params);
+		
+		if(mobileUsers != null && mobileUsers.size() > 0){
+			MobileUser mobileUser = mobileUsers.get(0);
+			
+			String urlPasswordPart = urlPara.split("/")[0];
+			String password = UrlUtil.getUrlParaValue(urlPasswordPart);
+			
+			String md5Password = MD5.GetMD5Code(password);
+			
+			mobileUser.setPassword(md5Password);
+			
+			update(mobileUser);
+			
+			responseStatus = "200";
+		}
+		
+		return responseStatus;
+	}
+	
+	public String createSafeCode(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String key = "";
+		
+		String userName = mobileServerConfig.getUrlPart3();
+		String realm = mobileServerConfig.getUrlPart4();
+		
+		String responseXmlFile = mobileServerConfig.getResponseXmlFile();
+		Document safeCodeDoc = XmlUtil.getXmlDoc(responseXmlFile);
+		Element safeCodeelement = (Element)safeCodeDoc.selectSingleNode("safecode");
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("userName", userName);
+		/*params.put("companyCode", mobileServerConfig.getCompanyCode());*/
+		List<MobileUser> mobileUsers = findForUnPage(params);
+		
+		if(mobileUsers != null && mobileUsers.size() > 0){
+			MobileUser mobileUser = mobileUsers.get(0);
+			
+			String md5Password = mobileUser.getPassword();
+			
+			key = userName + ":" + realm + ":" + md5Password;
+			
+			key = MD5.GetMD5Code(key);
+			
+			safeCodeelement.attribute("message").setValue("200");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue(key);
+			
+			responseStatus = safeCodeDoc.asXML();
+		}else {
+			safeCodeelement.attribute("message").setValue("100");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue("user not found");
+			
+			responseStatus = safeCodeDoc.asXML();
+		}
+		
+		return responseStatus;
+	}
+	
+	public String security(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String key = "";
+		
+		String userName = mobileServerConfig.getUrlPart3();
+		String realm = mobileServerConfig.getUrlPart4();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("userName", userName);
+		List<MobileUser> mobileUsers = findUnJoin(params);
+		
+		if(mobileUsers != null && mobileUsers.size() > 0){
+			MobileUser mobileUser = mobileUsers.get(0);
+			
+			String md5Password = mobileUser.getPassword();
+			
+			key = userName + ":" + realm + ":" + md5Password;
+			
+			key = MD5.GetMD5Code(key);
+			
+			String responseXmlFile = mobileServerConfig.getResponseXmlFile();
+			
+			Document safeCodeDoc = XmlUtil.getXmlDoc(responseXmlFile);
+			
+			Element safeCodeelement = (Element)safeCodeDoc.selectSingleNode("safecode");
+			safeCodeelement.attribute("message").setValue("200");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue(key);
+			
+			responseStatus = safeCodeDoc.asXML();
+		}
+		
+		return responseStatus;
+	}
+	
+	public String getMobileUserJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String ownerUris = "";
+		if(jsonObject.containsKey("ownerUris")){
+			ownerUris = jsonObject.opt("ownerUris").toString();
+		}
+		
+		String displayName = "";
+		if(jsonObject.containsKey("displayName")){
+			displayName = jsonObject.opt("displayName").toString();
+		}
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		try {
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", mobileServerConfig.getCompanyCode());
+			
+			if(ownerUris != null && !ownerUris.equals("")){
+				params.put("ownerUri", ownerUris);
+			}
+			
+			if(displayName != null && !displayName.equals("")){
+				params.put("displayName", displayName);
+			}
+			
+			List<MobileUser> mobileUsers = mobileUserDao.findUnPageIn(params);
+			
+			if(mobileUsers != null && mobileUsers.size() > 0){
+				JSONArray jsonArray = new JSONArray();
+				
+				for (MobileUser mobileUser : mobileUsers) {
+					JSONObject jsonObjectData = new JSONObject();
+					
+					jsonObjectData.put("ownerUri", mobileUser.getOwnerUri());
+					jsonObjectData.put("displayName", mobileUser.getDisplayName());
+					jsonObjectData.put("trueName", mobileUser.getTrueName() == null ? "" : mobileUser.getTrueName());
+					jsonObjectData.put("mobilePhone", mobileUser.getMobilePhone() == null ? "" : mobileUser.getMobilePhone());
+					jsonObjectData.put("gender", mobileUser.getGender() == null ? "" : mobileUser.getGender());
+					jsonObjectData.put("mail", mobileUser.getMail() == null ? "" : mobileUser.getMail());
+					jsonObjectData.put("birthday", mobileUser.getBirthday() == null ? "" : mobileUser.getBirthday());
+					jsonObjectData.put("headPortrait", mobileUser.getHeadPortrait() == null ? "" : mobileUser.getHeadPortrait());
+					jsonObjectData.put("province", mobileUser.getProvince() == null ? "" : mobileUser.getProvince());
+					jsonObjectData.put("city", mobileUser.getCity() == null ? "" : mobileUser.getCity());
+					jsonObjectData.put("sign", mobileUser.getSign() == null ? "" : mobileUser.getSign());
+					jsonObjectData.put("companyCode", mobileUser.getCompanyCode() == null ? "" : mobileUser.getCompanyCode());
+					jsonObjectData.put("orgStructure", mobileUser.getOrgStructure() == null ? "" : mobileUser.getOrgStructure());
+					
+					jsonArray.add(jsonObjectData);
+				}
+				
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", jsonArray);
+				
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "没有相关的用户");
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", e.getMessage());
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String editMobileUserJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String ownerUri = "";
+		if(jsonObject.containsKey("ownerUri")){
+			ownerUri = jsonObject.opt("ownerUri").toString();
+		}
+		
+		if(ownerUri != null && !ownerUri.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("ownerUri", ownerUri);
+			
+			List<MobileUser> mobileUsers = findForUnPage(params);
+			
+			if(mobileUsers != null && mobileUsers.size() > 0){
+				MobileUser mobileUser = mobileUsers.get(0);
+				
+				String displayName = "";
+				if(jsonObject.containsKey("displayName")){
+					displayName = jsonObject.opt("displayName").toString();
+					
+					mobileUser.setDisplayName(displayName);
+				}
+				
+				if(displayName != null && !displayName.equals("")){
+					Map<String, Object> mobileUserParams = new HashMap<String, Object>();
+					mobileUserParams.put("ownerUri", ownerUri);
+					mobileUserParams.put("displayName", displayName);
+					List<MobileUser> tempMobileUsers = findForUnPageByCheckDisplayName(mobileUserParams);
+					if(tempMobileUsers != null && tempMobileUsers.size() > 0){
+						jsonObjectResult.put("result", "0");
+						jsonObjectResult.put("message", "该昵称已经存在");
+						json = jsonObjectResult.toString();
+						
+						return json;
+					}
+				}
+				
+				String trueName = "";
+				if(jsonObject.containsKey("trueName")){
+					trueName = jsonObject.opt("trueName").toString();
+					
+					mobileUser.setTrueName(trueName);
+				}
+				
+				String mobilePhone = "";
+				if(jsonObject.containsKey("mobilePhone")){
+					mobilePhone = jsonObject.opt("mobilePhone").toString();
+					
+					mobileUser.setMobilePhone(mobilePhone);
+				}
+				
+				String gender = "";
+				if(jsonObject.containsKey("gender")){
+					gender = jsonObject.opt("gender").toString();
+					
+					mobileUser.setGender(gender);
+				}
+				
+				String mail = "";
+				if(jsonObject.containsKey("mail")){
+					mail = jsonObject.opt("mail").toString();
+					
+					mobileUser.setMail(mail);
+				}
+				
+				String birthday = "";
+				if(jsonObject.containsKey("birthday")){
+					birthday = jsonObject.opt("birthday").toString();
+					
+					mobileUser.setBirthday(birthday);
+				}
+				
+				String headPortrait = "";
+				if(jsonObject.containsKey("headPortrait")){
+					headPortrait = jsonObject.opt("headPortrait").toString();
+					
+					mobileUser.setHeadPortrait(headPortrait);
+				}
+				
+				String province = "";
+				if(jsonObject.containsKey("province")){
+					province = jsonObject.opt("province").toString();
+					
+					mobileUser.setProvince(province);
+				}
+				
+				String city = "";
+				if(jsonObject.containsKey("city")){
+					city = jsonObject.opt("city").toString();
+					
+					mobileUser.setCity(city);
+				}
+				
+				String sign = "";
+				if(jsonObject.containsKey("sign")){
+					sign = jsonObject.opt("sign").toString();
+					
+					mobileUser.setSign(sign);
+				}
+				
+				update(mobileUser);
+				
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", "200");
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该用户不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "请提供用户地址");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String getMobileUserByDisplayName(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String displayName = "";
+		if(jsonObject.containsKey("displayName")){
+			displayName = jsonObject.opt("displayName").toString();
+		}
+		
+		String ownerUri = "";
+		if(jsonObject.containsKey("ownerUri")){
+			ownerUri = jsonObject.opt("ownerUri").toString();
+		}
+		
+		if(displayName != null && !displayName.equals("") && ownerUri != null && !ownerUri.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", mobileServerConfig.getCompanyCode());
+			params.put("ownerUri", ownerUri);
+			params.put("displayName", displayName);
+			
+			List<MobileUser> mobileUsers = findForUnPageByCheckDisplayName(params);
+			
+			if(mobileUsers != null && mobileUsers.size() > 0){
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该昵称已经存在");
+			}else {
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", "200");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String getMobileUserSafeCode(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		//String userName, String realm, String passwd, String algorithm, String nonce, String cnonce, String method, String uri, String qop, String body, String nc
+		
+		String userName = "";
+		if(jsonObject.containsKey("userName")){
+			userName = jsonObject.opt("userName").toString();
+		}
+		
+		String realm = null;
+		if(jsonObject.containsKey("realm")){
+			realm = jsonObject.opt("realm").toString();
+		}
+		
+		String algorithm = null;
+		if(jsonObject.containsKey("algorithm")){
+			algorithm = jsonObject.opt("algorithm").toString();
+		}
+		
+		String nonce = null;
+		if(jsonObject.containsKey("nonce")){
+			nonce = jsonObject.opt("nonce").toString();
+		}
+		
+		String cnonce = null;
+		if(jsonObject.containsKey("cnonce")){
+			cnonce = jsonObject.opt("cnonce").toString();
+		}
+		
+		String method = null;
+		if(jsonObject.containsKey("method")){
+			method = jsonObject.opt("method").toString();
+		}
+		
+		String uri = null;
+		if(jsonObject.containsKey("uri")){
+			uri = jsonObject.opt("uri").toString();
+		}
+		
+		String qop = null;
+		if(jsonObject.containsKey("qop")){
+			qop = jsonObject.opt("qop").toString();
+		}
+		
+		String body = null;
+		if(jsonObject.containsKey("body")){
+			body = jsonObject.opt("body").toString();
+		}
+		
+		String nc = null;
+		if(jsonObject.containsKey("nc")){
+			nc = jsonObject.opt("nc").toString();
+		}
+		
+		if(userName != null && !userName.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", mobileServerConfig.getCompanyCode());
+			params.put("userName", userName);
+			
+			List<MobileUser> mobileUsers = findForUnPage(params);
+			
+			if(mobileUsers != null && mobileUsers.size() > 0){
+				JSONObject jsonObjectData = new JSONObject();
+				
+				MobileUser mobileUser = mobileUsers.get(0);
+				
+				String passwd = mobileUser.getPassword();
+				
+				String safeCode = DigestAuthentication.getSafeCode(userName, realm, passwd, algorithm, nonce, cnonce, method, uri, qop, body, nc);
+				
+				/*MobileCompany mobileCompany = mobileCompanyService.getMobileCompanyByComapnyCode(mobileServerConfig.getCompanyCode());*/
+				
+				System.out.println("safeCode : " + safeCode);
+				
+				jsonObjectData.put("safeCode", safeCode);
+				
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", jsonObjectData.toString());
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该用户不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String sendMobileLockJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String id = "";
+		if(jsonObject.containsKey("id")){
+			id = jsonObject.opt("id").toString();
+		}
+		
+		if(id != null && !id.equals("")){
+			MobileUser mobileUser = get(id);
+			
+			if(mobileUser != null){
+				try {
+					String ownerUri = mobileUser.getOwnerUri();
+					String permission = "MobileLock";
+					
+					MobileCompany mobileCompany = mobileCompanyService.getMobileCompanyByComapnyCode(mobileServerConfig.getCompanyCode());
+					
+					List<MobileRpcParamenter> mobileRpcParamenters = new ArrayList<MobileRpcParamenter>();
+					MobileRpcParamenter mobileRpcParamenter1 = new MobileRpcParamenter();
+					
+					mobileRpcParamenter1.setParaName("OwnerUri");
+					mobileRpcParamenter1.setParaType("String");
+					mobileRpcParamenter1.setParaValue(ownerUri);
+					mobileRpcParamenter1.setParaSort(1);
+					mobileRpcParamenters.add(mobileRpcParamenter1);
+					
+					MobileRpcParamenter mobileRpcParamenter2 = new MobileRpcParamenter();
+					mobileRpcParamenter2.setParaName("Permission");
+					mobileRpcParamenter2.setParaType("String");
+					mobileRpcParamenter2.setParaValue(permission);
+					mobileRpcParamenter2.setParaSort(1);
+					mobileRpcParamenters.add(mobileRpcParamenter2);
+					
+					mobileSyncDataService.SyncData("MobileControl", mobileRpcParamenters, mobileCompany);
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", "200");
+				} catch (Exception e) {
+					jsonObjectResult.put("result", "0");
+					jsonObjectResult.put("message", "发送消息异常");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "用户不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String sendMobileClearJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String id = "";
+		if(jsonObject.containsKey("id")){
+			id = jsonObject.opt("id").toString();
+		}
+		
+		if(id != null && !id.equals("")){
+			MobileUser mobileUser = get(id);
+			
+			if(mobileUser != null){
+				try {
+					String ownerUri = mobileUser.getOwnerUri();
+					
+					mobileContactService.deleteMobileContactMemberByOwnerUri(ownerUri, "WhiteList");
+					
+					mobileAppService.deleteMobileAppItemByoOwnerUri(ownerUri, "WhiteList");
+					
+					String permission = "MobileClear";
+					
+					MobileCompany mobileCompany = mobileCompanyService.getMobileCompanyByComapnyCode(mobileServerConfig.getCompanyCode());
+					
+					List<MobileRpcParamenter> mobileRpcParamenters = new ArrayList<MobileRpcParamenter>();
+					MobileRpcParamenter mobileRpcParamenter1 = new MobileRpcParamenter();
+					
+					mobileRpcParamenter1.setParaName("OwnerUri");
+					mobileRpcParamenter1.setParaType("String");
+					mobileRpcParamenter1.setParaValue(ownerUri);
+					mobileRpcParamenter1.setParaSort(1);
+					mobileRpcParamenters.add(mobileRpcParamenter1);
+					
+					MobileRpcParamenter mobileRpcParamenter2 = new MobileRpcParamenter();
+					mobileRpcParamenter2.setParaName("Permission");
+					mobileRpcParamenter2.setParaType("String");
+					mobileRpcParamenter2.setParaValue(permission);
+					mobileRpcParamenter2.setParaSort(1);
+					mobileRpcParamenters.add(mobileRpcParamenter2);
+					
+					mobileSyncDataService.SyncData("MobileControl", mobileRpcParamenters, mobileCompany);
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", "200");
+				} catch (Exception e) {
+					jsonObjectResult.put("result", "0");
+					jsonObjectResult.put("message", "发送消息异常");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "用户不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public void runMqttPushMobileListening(String ownerUri, String listType, String userName, MobileCompany mobileCompany){
+		JSONObject jsonObjectData = new JSONObject();
+		
+		String listFileName = ownerUri + "_" + listType;
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", ownerUri);
+		params.put("listFileName", listFileName);
+		List<MobileContactMember> list = mobileContactMemberService.findForUnPage(params);
+		
+		jsonObjectData.put("cmd", "listening");
+		
+		if(list != null && list.size() > 0){
+			MobileContactMember mobileContactMember = list.get(0);
+			
+			if(mobileContactMember != null){
+				JSONObject jsonObjectMobileContactMember = new JSONObject();
+				
+				jsonObjectMobileContactMember.put("shortNum", mobileContactMember.getShortNum() == null ? "" : mobileContactMember.getShortNum());
+				jsonObjectMobileContactMember.put("mobilePhone", mobileContactMember.getMobilePhone() == null ? "" : mobileContactMember.getMobilePhone());
+				
+				jsonObjectData.put("data", jsonObjectMobileContactMember.toString());
+			}
+		}
+		
+		String mqttHost = mobileCompany.getRpcHost();
+		String mqttPort = mobileCompany.getRpcPort();
+		
+		String topic = "host/" + userName;
+		String content = jsonObjectData.toString();
+		String broker = mqttHost + ":" + mqttPort;
+		
+		SendMqttUtil.send(topic, content, broker);
+	}
+	
+	public void runMqttPushMobileReportLocation(String userName, MobileCompany mobileCompany){
+		JSONObject jsonObjectData = new JSONObject();
+		
+		jsonObjectData.put("cmd", "reportLocation");
+		jsonObjectData.put("data", "");
+		
+		String mqttHost = mobileCompany.getRpcHost();
+		String mqttPort = mobileCompany.getRpcPort();
+		
+		String topic = "host/" + userName;
+		String content = jsonObjectData.toString();
+		String broker = mqttHost + ":" + mqttPort;
+		
+		SendMqttUtil.send(topic, content, broker);
+	}
+	
+	public Map<String, Object> getMobileUserMapByOrgStructure(String orgStructure){
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("orgStructure", orgStructure);
+		params.put("status", "Y");
+		List<MobileUser> list = findForUnPage(params);
+		
+		for (MobileUser mobileUser : list) {
+			map.put(mobileUser.getOwnerUri(), mobileUser.getDisplayName());
+		}
+		
+		map = MapUtil.mapSortByKey(map);
+		
+		return map;
+	}
+	
+	public String sendMobileListeningJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String openId = "";
+		if(jsonObject.containsKey("openId")){
+			openId = jsonObject.opt("openId").toString();
+		}
+		
+		String mobileOwnerUri = "";
+		if(jsonObject.containsKey("ownerUri")){
+			mobileOwnerUri = jsonObject.opt("ownerUri").toString();
+		}
+		
+		if(openId != null && !openId.equals("") && mobileOwnerUri != null && !mobileOwnerUri.equals("")){
+			WeiXinUser weiXinUser = weiXinUserService.getWeiXinUserByOpenId(openId);
+			
+			if(weiXinUser != null){
+				MobileUser mobileUser = getMobileUserByOwnerUri(mobileOwnerUri);
+				
+				if(mobileUser != null){
+					String listType = "WhiteList";
+					String userName = mobileUser.getUserName();
+					MobileCompany mobileCompany = mobileCompanyService.getMobileCompanyByComapnyCode(mobileServerConfig.getCompanyCode());
+					
+					runMqttPushMobileListening(mobileOwnerUri, listType, userName, mobileCompany);
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", "200");
+				}else {
+					jsonObjectResult.put("result", "0");
+					jsonObjectResult.put("message", "非法用户");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "非法用户");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public List<MobileUser> getMobileUserByOpenId(String openId){
+		List<MobileUser> mobileUsers = new ArrayList<MobileUser>();
+		
+		if(openId != null && !openId.equals("")){
+			WeiXinUser weiXinUser = weiXinUserService.getWeiXinUserByOpenId(openId);
+			
+			if(weiXinUser != null){
+				String weiXinOwnerUri = weiXinUser.getOwnerUri();
+				
+				Map<String, Object> weiXinInMobileParams = new HashMap<String, Object>();
+				weiXinInMobileParams.put("weiXinOwnerUri", weiXinOwnerUri);
+				weiXinInMobileParams.put("status", "Y");
+				
+				List<WeiXinInMobile> weiXinInMobiles = weiXinInMobileService.findForUnPage(weiXinInMobileParams);
+				
+				if(weiXinInMobiles != null && weiXinInMobiles.size() > 0){
+					for (WeiXinInMobile weiXinInMobile : weiXinInMobiles) {
+						String mobileOwnerUri = weiXinInMobile.getMobileOwnerUri();
+						
+						MobileUser mobileUser = getMobileUserByOwnerUri(mobileOwnerUri);
+						
+						if(mobileUser != null){
+							mobileUsers.add(mobileUser);
+						}
+					}
+				}
+			}
+		}
+		
+		return mobileUsers;
+	}
+	
+	public String sendMobileListeningByFwhJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String openId = "";
+		if(jsonObject.containsKey("openId")){
+			openId = jsonObject.opt("openId").toString();
+		}
+		
+		String mobileOwnerUri = "";
+		if(jsonObject.containsKey("ownerUri")){
+			mobileOwnerUri = jsonObject.opt("ownerUri").toString();
+		}
+		
+		if(openId != null && !openId.equals("") && mobileOwnerUri != null && !mobileOwnerUri.equals("")){
+			WeiXinUser weiXinUser = weiXinUserService.getWeiXinUserByOpenId(openId);
+			
+			if(weiXinUser != null){
+				MobileUser mobileUser = getMobileUserByOwnerUri(mobileOwnerUri);
+				
+				if(mobileUser != null){
+					String listType = "WhiteList";
+					String userName = mobileUser.getUserName();
+					MobileCompany mobileCompany = mobileCompanyService.getMobileCompanyByComapnyCode(mobileServerConfig.getCompanyCode());
+					
+					runMqttPushMobileListening(mobileOwnerUri, listType, userName, mobileCompany);
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", "200");
+				}else {
+					jsonObjectResult.put("result", "0");
+					jsonObjectResult.put("message", "非法用户");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "非法用户");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+}

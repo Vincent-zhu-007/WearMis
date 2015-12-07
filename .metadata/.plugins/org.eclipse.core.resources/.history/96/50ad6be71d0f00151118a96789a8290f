@@ -1,0 +1,472 @@
+package com.sg.poc.service;
+
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import javax.annotation.Resource;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.sg.poc.dao.PocServerConfigDao;
+import com.sg.poc.entity.PocCompany;
+import com.sg.poc.entity.PocServerConfig;
+import com.sg.service.BaseEntityManager;
+import com.sg.service.CacheConfigService;
+import com.sg.service.CodeService;
+import com.sg.service.ProvinceService;
+import com.sg.util.FileUtil;
+import com.sg.util.MemCached;
+
+@Service
+public class PocServerConfigService implements BaseEntityManager<PocServerConfig> {
+	@Resource
+	private PocServerConfigDao pocServerConfigDao;
+	
+	@Autowired
+	private PocDirectoryService pocDirectoryService;
+	
+	@Autowired
+	private PocGroupService pocGroupService;
+	
+	@Autowired
+	private PocContactService pocContactService;
+	
+	@Autowired
+	private PocRlsService pocRlsService;
+	
+	@Autowired
+	private PocRuleService pocRuleService;
+	
+	@Autowired
+	private PocVersionConfigService pocVersionConfigService;
+	
+	@Autowired
+	private PocUserService pocUserService;
+	
+	@Autowired
+	private PocUserLocationService pocUserLocationService;
+	
+	@Autowired
+	private PocCompanyService pocCompanyService;
+	
+	@Autowired
+	private PocUserFileService pocUserFileService;
+	
+	@Autowired
+	private ProvinceService provinceService;
+	
+	@Autowired
+	private CacheConfigService cacheConfigService;
+	
+	@Autowired
+	private PocMessageCenterService pocMessageCenterService;
+	
+	@Autowired
+	private PocFeedBackService pocFeedBackService;
+	
+	@Autowired
+	private PocMenuService pocMenuService;
+	
+	@Autowired
+	private CodeService codeService;
+
+	@Override
+	public void create(PocServerConfig entity) {
+		// TODO Auto-generated method stub
+		pocServerConfigDao.create(entity);
+	}
+
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		pocServerConfigDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocServerConfig> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return pocServerConfigDao.find(params, pageParams);
+	}
+
+	@Override
+	public PocServerConfig get(String id) {
+		// TODO Auto-generated method stub
+		return pocServerConfigDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocServerConfig> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return pocServerConfigDao.findForUnPage(params);
+	}
+
+	@Override
+	public void update(PocServerConfig entity) {
+		// TODO Auto-generated method stub
+		pocServerConfigDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return pocServerConfigDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public List<PocServerConfig> getPocServerConfigCache() {
+		List<PocServerConfig> list = new ArrayList<PocServerConfig>();
+		
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("PocServerConfig");
+			if(obj != null && !obj.equals("")) {
+				String json = MemCached.getInstance().get("PocServerConfig").toString();
+				
+				JSONArray array = JSONArray.fromObject(json);
+			    for(Iterator iter = array.iterator(); iter.hasNext();){
+			        JSONObject jsonObject = (JSONObject)iter.next();
+			        list.add((PocServerConfig)JSONObject.toBean(jsonObject, PocServerConfig.class));
+			    }
+			}else {
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("status", "Y");
+				list = this.findForUnPage(params);
+				
+				JSONArray jsonObject = JSONArray.fromObject(list);
+				
+				MemCached.getInstance().set("PocServerConfig", jsonObject);
+			}
+		}
+		
+		return list;
+	}
+	
+	public void clearPocServerConfigCache() {
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("PocServerConfig");
+			if(obj != null && !obj.equals("")) {
+				MemCached.getInstance().set("PocServerConfig", "");
+			}
+		}
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<PocServerConfig> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("POC服务列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("公司编码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("主机");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("端口");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("请求类型");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("应用名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("MEDIA类型");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 6);
+			cell.setCellValue("描述");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 7);
+			cell.setCellValue("地址第一部分");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 8);
+			cell.setCellValue("地址第二部分");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 9);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 10);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				PocServerConfig model = (PocServerConfig) list.get(i);
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getCompanyCode());
+				row.createCell((short) 1).setCellValue(model.getHost());
+				row.createCell((short) 2).setCellValue(model.getPort());
+				row.createCell((short) 3).setCellValue(model.getHttpMethod());
+				row.createCell((short) 4).setCellValue(model.getAppName());
+				row.createCell((short) 5).setCellValue(model.getContentType());
+				row.createCell((short) 6).setCellValue(model.getDescription());
+				row.createCell((short) 7).setCellValue(model.getUrlPart1());
+				row.createCell((short) 8).setCellValue(model.getUrlPart2());
+				row.createCell((short) 9).setCellValue(model.getStatus());
+				cell = row.createCell((short) 10);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public String serverGetProcess(PocServerConfig pocServerConfig, String urlPara){
+		String xml = "";
+		String urlPart1 = pocServerConfig.getUrlPart1();
+		String urlPart2 = pocServerConfig.getUrlPart2();
+		String fileName = pocServerConfig.getResponseXmlFile();
+		
+		if(urlPart2.equals("users")){
+			if(urlPart1.equals("org.openmobilealliance.xcap-directory")){
+				xml = pocDirectoryService.getPocDirectoryXml(pocServerConfig, fileName, urlPara);
+			}else if (urlPart1.equals("org.openmobilealliance.poc-groups")) {
+				xml = pocGroupService.getPocGroupXml(pocServerConfig, fileName);
+			}else if(urlPart1.equals("resource-lists")){
+				xml = pocContactService.getPocContactXml(pocServerConfig, fileName);
+			}else if (urlPart1.equals("rls-services")) {
+				xml = pocRlsService.getPocRlsXml(pocServerConfig, fileName);
+			}else if (urlPart1.equals("org.openmobilealliance.poc-rules")) {
+				xml = pocRuleService.getPocRuleXml(pocServerConfig, fileName);
+			}else if (urlPart1.equals("org.openmobilealliance.group-usage-list")) {
+				xml = pocGroupService.getGroupUsageListXml(pocServerConfig, fileName);
+			}
+		}else if (urlPart2.equals("global")) {
+			if(urlPart1.equals("org.openmobilealliance.xcap-directory")){
+				xml = pocDirectoryService.getAllUserPocDirectoryXml(pocServerConfig, fileName);
+			}
+		}
+		
+		return xml;
+	}
+	
+	public String serverPutProcess(PocServerConfig pocServerConfig, String requestXml, String urlPara){
+		String responseStatus = "";
+		
+		try {
+			
+			Document doc = null;
+			
+			if(requestXml != null && !requestXml.equals("")){
+				doc = DocumentHelper.parseText(requestXml);
+			}
+			
+			String urlPart1 = pocServerConfig.getUrlPart1();
+			
+			if(urlPart1.equals("resource-lists")){
+				responseStatus = pocContactService.putPocContactXml(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("org.openmobilealliance.poc-groups")) {
+				responseStatus = pocGroupService.putPocGroupXml(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("org.openmobilealliance.poc-rules")) {
+				responseStatus = pocRuleService.putPocRuleXml(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("rls-services")) {
+				responseStatus = pocRlsService.putPocRlsXml(pocServerConfig, doc, urlPara);
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.print(e.getMessage());
+			responseStatus = "xml load error";
+		}
+		
+		return responseStatus;
+	}
+	
+	public String serverDeleteProcess(PocServerConfig pocServerConfig, String requestXml, String urlPara){
+		String responseStatus = "";
+		
+		try {
+			
+			Document doc = null;
+			
+			if(requestXml != null && !requestXml.equals("")){
+				doc = DocumentHelper.parseText(requestXml);
+			}
+			
+			String urlPart1 = pocServerConfig.getUrlPart1();
+			
+			if(urlPart1.equals("resource-lists")){
+				responseStatus = pocContactService.deletePocContactXml(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("org.openmobilealliance.poc-groups")) {
+				responseStatus = pocGroupService.deletePocGroupXml(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("org.openmobilealliance.poc-rules")) {
+				responseStatus = pocRuleService.deletePocRuleXml(pocServerConfig, doc, urlPara);
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.print(e.getMessage());
+			responseStatus = "xml load error";
+		}
+		
+		return responseStatus;
+	}
+	
+	public String serverPostProcess(PocServerConfig pocServerConfig, String requestXml, String urlPara){
+		String responseStatus = "";
+		
+		String urlPart1 = pocServerConfig.getUrlPart1();
+		String contentType = pocServerConfig.getContentType();
+		
+		Document doc = null;
+		
+		if(requestXml != null && !requestXml.equals("")){
+			try {
+				doc = DocumentHelper.parseText(requestXml);
+			} catch (DocumentException e) {
+				// TODO Auto-generated catch block
+				System.out.println(e.getMessage());
+			}
+		}
+		
+		if(contentType.equals("text/json")){
+			if(urlPart1.equals("version")){
+				responseStatus = pocVersionConfigService.getPocVersionConfigJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.location.create")) {
+				responseStatus = pocUserLocationService.createPocUserLocationData(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocuserfile.get")) {
+				responseStatus = pocUserFileService.getPocUserFileJsonByFileType(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocuser.get")) {
+				responseStatus = pocUserService.getPocUserJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocuser.edit")) {
+				responseStatus = pocUserService.editPocUserJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocgroup.getbydisplayname")) {
+				responseStatus = pocGroupService.getPocGroupByDisplayNameJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocgroup.edit")) {
+				responseStatus = pocGroupService.editPocGroupJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocgroupmember.getbygroupuri")) {
+				responseStatus = pocGroupService.getPocGroupMemberByGroupUriJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocarea.getpocarea")) {
+				responseStatus = provinceService.getPocAreaJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocuserfile.create")) {
+				responseStatus = pocUserFileService.createPocUserFileJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocuser.existbydisplayname")) {
+				responseStatus = pocUserService.getPocUserByDisplayName(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocgroup.existbydisplayname")) {
+				responseStatus = pocGroupService.getPocGroupByDisplayName(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.cacheconfig.getcacheconfigetagbycodename")) {
+				responseStatus = cacheConfigService.getCacheConfigByCodeName(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocuser.checkpocusermeino")) {
+				responseStatus = pocUserService.checkPocUserMeiNo(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocmessagecenter.create")) {
+				responseStatus = pocMessageCenterService.createPocMessageCenterJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocmessagecenter.process")) {
+				responseStatus = pocMessageCenterService.processPocMessageCenterJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocgroup.getbase")) {
+				responseStatus = pocGroupService.getPocGroupBaseJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocuserfile.createandupload")) {
+				responseStatus = pocUserFileService.createPocUserFileAndUploadFileJson(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.pocfeedback.create")) {
+				responseStatus = pocFeedBackService.createPocFeedBackJson(pocServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("poc.pocmenu.initpocmenu")){
+				responseStatus = pocMenuService.initPocMenuJson(pocServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("poc.systemcode.getcodebycategory")){
+				responseStatus = codeService.getCodeByCategoryJson(pocServerConfig, doc, urlPara);
+			}else if(urlPart1.equals("poc.pocuser.getpocusersafecode")){
+				responseStatus = codeService.getCodeByCategoryJson(pocServerConfig, doc, urlPara);
+			}
+		}else {
+			if(urlPart1.equals("poc.changepwd")){
+				responseStatus = pocUserService.changePocUserPassword(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.safecode")) {
+				responseStatus = pocUserService.createSafeCode(pocServerConfig, doc, urlPara);
+			}else if (urlPart1.equals("poc.security")) {
+				responseStatus = pocUserService.security(pocServerConfig, doc, urlPara);
+			}
+		}
+		
+		return responseStatus;
+	}
+	
+	public String serverPostFileProcess(PocServerConfig pocServerConfig, InputStream is, String urlPara, String savePath){
+		String responseStatus = "";
+		
+		String urlPart1 = pocServerConfig.getUrlPart1();
+		
+		try {
+			String fileName = urlPara.split("/")[0];
+			String dirName = urlPara.split("/")[1];
+			
+			if(urlPart1.equals("poc.common.upload")){
+				responseStatus = FileUtil.getSaveUrlByStream(fileName, dirName, savePath, is);
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return responseStatus; 
+	}
+	
+	public PocCompany getPocCompanyByComapnyCode(String companyCode){
+		List<PocCompany> pocCompanys = pocCompanyService.getPocCompanyCache();
+		
+		for (PocCompany pocCompany : pocCompanys) {
+			if(pocCompany.getCodeName().equals(companyCode)){
+				return pocCompany;
+			}
+		}
+		
+		return null;
+	}
+	
+	public Map<String, Object> getPocUserFileFileTypeTypeMap(){
+		return pocUserFileService.getPocUserFileFileTypeTypeMap();
+	}
+}

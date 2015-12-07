@@ -1,0 +1,6 @@
+INDEX VERSION 1.122+E:\Java Project Development\Development WearMis\mis\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
+2644756253.index
+4220399867.index
+3860836089.index
+2544237896.index
+3045253335.index

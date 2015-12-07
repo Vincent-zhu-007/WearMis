@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobilePower">
+	<typeAlias alias="mobilePower" type="com.sg.mobile.entity.MobilePower" />
+	
+	<resultMap id="MobilePowerResult" class="mobilePower">
+		<result property="id" column="Id" />
+		<result property="ownerUri" column="OwnerUri" />
+		<result property="percent" column="Percent" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri=#ownerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="percent">
+			<![CDATA[A.Percent=#percent#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobilePower">
+		INSERT INTO MobilePower (Id, OwnerUri, Percent, Status, CreateTime, Creator) 
+		VALUES (#id#, #ownerUri#, #percent#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobilePower">
+		UPDATE MobilePower 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="percent">
+				Percent=#percent#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobilePowerResult" parameterClass="String">
+		SELECT A.* FROM MobilePower A
+		WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobilePower A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobilePowerResult">
+		SELECT A.* FROM MobilePower A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobilePowerResult">
+		SELECT A.* FROM MobilePower A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MobilePower WHERE Id=#id#
+	</delete>
+</sqlMap>

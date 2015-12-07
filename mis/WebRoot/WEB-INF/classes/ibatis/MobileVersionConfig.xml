@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileVersionConfig">
+	<typeAlias alias="mobileVersionConfig" type="com.sg.mobile.entity.MobileVersionConfig" />
+	
+	<resultMap id="MobileVersionConfigResult" class="mobileVersionConfig">
+		<result property="id" column="Id" />
+		<result property="name" column="Name" />
+		<result property="verFileAddress" column="VerFileAddress" />
+		<result property="verNo" column="VerNo" />
+		<result property="verCategory" column="VerCategory" />
+		<result property="verSort" column="VerSort" />
+		<result property="isMandatoryUpdate" column="IsMandatoryUpdate" />
+		<result property="verRemark" column="VerRemark" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="name">
+			<![CDATA[A.Name like CONCAT('%', #name#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="verNo">
+			<![CDATA[A.VerNo=#verNo#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="verCategory">
+			<![CDATA[A.VerCategory=#verCategory#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="verSort">
+			<![CDATA[A.VerSort=#verSort#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileVersionConfig">
+		INSERT INTO MobileVersionConfig (Id, Name, VerFileAddress, VerNo, VerCategory, VerSort, IsMandatoryUpdate, VerRemark, Status, CreateTime, Creator) 
+		VALUES (#id#, #name#, #verFileAddress#, #verNo#, #verCategory#, #verSort#, #isMandatoryUpdate#, #verRemark#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileVersionConfig">
+		UPDATE MobileVersionConfig 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="name">
+				Name=#name#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="verFileAddress">
+				VerFileAddress=#verFileAddress#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="verNo">
+				VerNo=#verNo#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="verCategory">
+				VerCategory=#verCategory#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="verSort">
+				VerSort=#verSort#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="isMandatoryUpdate">
+				IsMandatoryUpdate=#isMandatoryUpdate#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="verRemark">
+				VerRemark=#verRemark#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileVersionConfigResult" parameterClass="String">
+		SELECT A.* FROM MobileVersionConfig A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileVersionConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileVersionConfigResult">
+		SELECT A.* FROM MobileVersionConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileVersionConfigResult">
+		SELECT A.* FROM MobileVersionConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="String">
+		DELETE FROM MobileVersionConfig WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

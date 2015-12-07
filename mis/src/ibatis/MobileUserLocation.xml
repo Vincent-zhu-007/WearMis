@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileUserLocation">
+	<typeAlias alias="mobileUserLocation" type="com.sg.mobile.entity.MobileUserLocation" />
+	
+	<resultMap id="MobileUserLocationResult" class="mobileUserLocation">
+		<result property="id" column="Id" />
+		<result property="ownerUri" column="OwnerUri" />
+		<result property="longitude" column="Longitude" />
+		<result property="latitude" column="Latitude" />
+		<result property="address" column="Address" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+		<result property="startTime" column="StartTime" />
+		<result property="endTime" column="EndTime" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri=#ownerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="address">
+			<![CDATA[A.Address like CONCAT('%', #address#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="longitude">
+			<![CDATA[A.Longitude=#longitude#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="latitude">
+			<![CDATA[A.Latitude=#latitude#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+		<isNotNull prepend="and" property="startTime">
+			<![CDATA[A.CreateTime>=#startTime#]]>
+		</isNotNull>
+		<isNotNull prepend="and" property="endTime">
+			<![CDATA[A.CreateTime<=#endTime#]]>
+		</isNotNull>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileUserLocation">
+		INSERT INTO MobileUserLocation (Id, OwnerUri, Longitude, Latitude, Address, Status, CreateTime, Creator) 
+		VALUES (#id#, #ownerUri#, #longitude#, #latitude#, #address#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileUserLocation">
+		UPDATE MobileUserLocation 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="longitude">
+				Longitude=#longitude#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="latitude">
+				Latitude=#latitude#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="address">
+				Address=#address#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileUserLocationResult" parameterClass="String">
+		SELECT A.* FROM MobileUserLocation A
+		WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileUserLocation A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileUserLocationResult">
+		SELECT A.* FROM MobileUserLocation A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileUserLocationResult">
+		SELECT A.* FROM MobileUserLocation A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MobileUserLocation WHERE Id=#id#
+	</delete>
+</sqlMap>

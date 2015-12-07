@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileServerConfig">
+	<typeAlias alias="mobileServerConfig" type="com.sg.mobile.entity.MobileServerConfig" />
+	
+	<resultMap id="MobileServerConfigResult" class="mobileServerConfig">
+		<result property="id" column="Id" />
+		<result property="companyCode" column="CompanyCode" />
+		<result property="host" column="Host" />
+		<result property="port" column="Port" />
+		<result property="appName" column="AppName" />
+		<result property="userAgent" column="UserAgent" />
+		<result property="x3GPPIntendedIdentity" column="X3GPPIntendedIdentity" />
+		<result property="contentType" column="ContentType" />
+		<result property="description" column="Description" />
+		<result property="httpMethod" column="HttpMethod" />
+		<result property="urlPart1" column="UrlPart1" />
+		<result property="urlPart2" column="UrlPart2" />
+		<result property="urlPart3" column="UrlPart3" />
+		<result property="urlPart4" column="UrlPart4" />
+		<result property="responseXmlFile" column="ResponseXmlFile" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[A.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="companyCode">
+			<![CDATA[A.CompanyCode=#companyCode#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="host">
+			<![CDATA[A.Host=#host#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="port">
+			<![CDATA[A.Port=#port#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="appName">
+			<![CDATA[A.AppName=#appName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="urlPart1">
+			<![CDATA[A.UrlPart1=#urlPart1#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="urlPart2">
+			<![CDATA[A.UrlPart2=#urlPart2#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="urlPart3">
+			<![CDATA[A.UrlPart3=#urlPart3#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="urlPart4">
+			<![CDATA[A.UrlPart4=#urlPart4#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileServerConfig">
+		INSERT INTO MobileServerConfig (Id, CompanyCode, Host, Port, AppName, UserAgent, X3GPPIntendedIdentity, ContentType, Description, HttpMethod, UrlPart1, UrlPart2, UrlPart3, UrlPart4, ResponseXmlFile, Status, CreateTime, Creator) 
+		VALUES (#id#, #companyCode#, #host#, #port#, #appName#, #userAgent#, #x3GPPIntendedIdentity#, #contentType#, #description#, #httpMethod#, #urlPart1#, #urlPart2#, #urlPart3#, #urlPart4#, #responseXmlFile#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileServerConfig">
+		UPDATE MobileServerConfig 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="companyCode">
+				CompanyCode=#companyCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="host">
+				Host=#host#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="port">
+				Port=#port#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="appName">
+				AppName=#appName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="userAgent">
+				UserAgent=#userAgent#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="x3GPPIntendedIdentity">
+				X3GPPIntendedIdentity=#x3GPPIntendedIdentity#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="contentType">
+				ContentType=#contentType#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="httpMethod">
+				HttpMethod=#httpMethod#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="urlPart1">
+				UrlPart1=#urlPart1#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="urlPart2">
+				UrlPart2=#urlPart2#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="urlPart3">
+				UrlPart3=#urlPart3#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="urlPart4">
+				UrlPart4=#urlPart4#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="responseXmlFile">
+				ResponseXmlFile=#responseXmlFile#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileServerConfigResult" parameterClass="String">
+		SELECT A.* FROM MobileServerConfig A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileServerConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileServerConfigResult">
+		SELECT A.* FROM MobileServerConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileServerConfigResult">
+		SELECT A.* FROM MobileServerConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="String">
+		DELETE FROM MobileServerConfig WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

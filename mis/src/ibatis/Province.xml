@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="Province">
+	<typeAlias alias="province" type="com.sg.entity.Province" />
+	
+	<resultMap id="ProvinceResult" class="province">
+		<result property="id" column="Id" />
+		<result property="codeName" column="CodeName" />
+		<result property="description" column="Description" />
+		<result property="displaySort" column="DisplaySort" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="codeName">
+			<![CDATA[A.CodeName=#codeName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[A.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="province">
+		INSERT INTO Province (Id, CodeName, Description, DisplaySort, Status, CreateTime, Creator) 
+		VALUES (#id#, #codeName#, #description#, #displaySort#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="province">
+		UPDATE Province 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="codeName">
+				CodeName=#codeName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="displaySort">
+				DisplaySort=#displaySort#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="ProvinceResult" parameterClass="String">
+		SELECT A.* FROM Province A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM Province A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="ProvinceResult">
+		SELECT A.* FROM Province A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="ProvinceResult">
+		SELECT A.* FROM Province A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM Province WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

@@ -1,0 +1,752 @@
+package com.sg.poc.controller;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.sg.controller.AbstractController;
+import com.sg.controller.JsonResult;
+import com.sg.entity.UserInfo;
+import com.sg.poc.entity.PocCompany;
+import com.sg.poc.entity.PocDirectory;
+import com.sg.poc.entity.PocGroup;
+import com.sg.poc.entity.PocGroupMember;
+import com.sg.poc.entity.PocGroupRole;
+import com.sg.poc.entity.PocRpcParamenter;
+import com.sg.poc.service.PocCompanyService;
+import com.sg.poc.service.PocDirectoryService;
+import com.sg.poc.service.PocGroupMemberService;
+import com.sg.poc.service.PocGroupRoleService;
+import com.sg.poc.service.PocGroupService;
+import com.sg.poc.service.PocSyncDataService;
+import com.sg.service.CodeService;
+import com.sg.util.DataGridModel;
+
+@Controller
+@RequestMapping("/pocGroup.do")
+public class PocGroupController extends AbstractController {
+	private final Logger log = Logger.getLogger(PocGroup.class);
+
+	@Autowired
+	private PocGroupService pocGroupService;
+	
+	@Autowired
+	private CodeService codeService;
+	
+	@Autowired
+	private PocGroupMemberService pocGroupMemberService;
+	
+	@Autowired
+	private PocDirectoryService pocDirectoryService;
+	
+	@Autowired
+	private PocGroupRoleService pocGroupRoleService;
+	
+	@Autowired
+	private PocSyncDataService pocSyncDataService;
+	
+	@Autowired
+	private PocCompanyService pocCompanyService;
+
+	/**
+	 * 菜单栏页面展示
+	 * 
+	 * @return 页面路径
+	 */
+	@RequestMapping
+	public String management() {
+		return "poc/pocgroup_list";
+	}
+
+	/**
+	 * pocGroup.do?method=list 提交时，list()被调用
+	 */
+	@RequestMapping(params = "method=list")
+	@ResponseBody
+	public JsonResult list(HttpServletRequest request, PocGroup entity,
+			DataGridModel dm) {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", entity.getOwnerUri());
+		params.put("groupUri", entity.getGroupUri());
+		params.put("displayName", entity.getDisplayName());
+		params.put("groupType", entity.getGroupTypeSearch());
+
+		List<PocGroup> list = pocGroupService.findForPage(params,
+				dm.getStartRow(), dm.getRows());
+		
+		Map<String, Object> inviteMembersMap = codeService.getCodeCacheMapByCategory("POCGROUPCATEGORY");
+		Map<String, Object> isPrivateMap = codeService.getCodeCacheMapByCategory("POCGROUPISPRIVATE");
+		Map<String, Object> groupTypeMap = codeService.getCodeCacheMapByCategory("POCGROUPGROUPTYPE");
+		Map<String, Object> groupLevelMap = codeService.getCodeCacheMapByCategory("POCGROUPGROUPLEVEL");
+		Map<String, Object> channelCodeMap = codeService.getCodeCacheMapByCategory("POCGROUPCHANNELCODE");
+		Map<String, Object> statusMap = codeService.getCodeCacheMapByCategory("STATUS");
+		for (PocGroup pocGroup : list) {
+			
+			if(pocGroup.getInviteMembers() != null && !pocGroup.getInviteMembers().equals("")){
+				String inviteMembers = inviteMembersMap.get(pocGroup.getInviteMembers()).toString();
+				pocGroup.setInviteMembers(inviteMembers);
+			}
+			
+			if(pocGroup.getIsPrivate() != null && !pocGroup.getIsPrivate().equals("")){
+				String isPrivate = isPrivateMap.get(pocGroup.getIsPrivate()).toString();
+				pocGroup.setIsPrivate(isPrivate);
+			}
+			
+			if(pocGroup.getGroupType() != null && !pocGroup.getGroupType().equals("")){
+				String groupType = groupTypeMap.get(pocGroup.getGroupType()).toString();
+				pocGroup.setGroupType(groupType);
+			}
+			
+			if(pocGroup.getGroupLevel() != null && !pocGroup.getGroupLevel().equals("")){
+				String groupLevel = groupLevelMap.get(pocGroup.getGroupLevel()).toString();
+				pocGroup.setGroupLevel(groupLevel);
+			}
+			
+			if(pocGroup.getChannelCode() != null && !pocGroup.getChannelCode().equals("")){
+				String channelCode = channelCodeMap.get(pocGroup.getChannelCode()).toString();
+				pocGroup.setChannelCode(channelCode);
+			}
+			
+			String status = statusMap.get(pocGroup.getStatus()).toString();
+			pocGroup.setStatus(status);
+		}
+
+		int totalCount = pocGroupService.getTotalCount(params).intValue();
+
+		JsonResult jsonResult = new JsonResult();
+		jsonResult.setTotal(totalCount);
+		jsonResult.setRows(list);
+		return jsonResult;
+	}
+
+	/**
+	 * pocGroup.do?method=add 请求以 HTTP POST 方式提交时，create()被调用
+	 * 
+	 * @param request
+	 * @param entity
+	 * @return
+	 */
+	@RequestMapping(params = "method=add")
+	@ResponseBody
+	public JsonResult create(HttpServletRequest request, PocGroup entity) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String ownerUri = entity.getOwnerUri();
+			
+			PocCompany pocCompany = pocCompanyService.getPocCompanyByOwnerUri(ownerUri);
+			
+			PocGroup oldPocGroup = null;
+			Map<String, Object> oldPocGroupParams = new HashMap<String, Object>();
+			oldPocGroupParams.put("ownerUri", ownerUri);
+			List<PocGroup> oldPocGroups = pocGroupService.findForUnPage(oldPocGroupParams);
+			if(oldPocGroups != null && oldPocGroups.size() > 0){
+				oldPocGroup = oldPocGroups.get(0);
+			}
+			
+			String prefixName = ownerUri.split("@")[0];
+			String suffixName = ownerUri.split("@")[1];
+			
+			String prefixGroupFileName = pocGroupService.findNewPocGroupFileName(ownerUri);
+			String groupFileName = prefixGroupFileName + ".xml";
+			
+			String groupUri = prefixName + "_" + prefixGroupFileName + "@" + suffixName;
+			
+			String sessionUserName = ((UserInfo)request.getSession().getAttribute("user")).getUserName();
+			
+			List<PocGroupMember> pocGroupMembers = new ArrayList<PocGroupMember>();
+			
+			String groupMemberUris = request.getParameter("pocGroupMember");
+			String[] array = groupMemberUris.split(",");
+			for (String groupMemberUri : array) {
+				PocGroupMember model = new PocGroupMember();
+				model.setId(UUID.randomUUID().toString());
+				model.setGroupUri(groupUri);
+				model.setGroupMemberUri(groupMemberUri);
+				
+				pocGroupMembers.add(model);
+			}
+			
+			/*把自己加入组*/
+			PocGroupMember selfPocGroupMember = new PocGroupMember();
+			selfPocGroupMember.setId(UUID.randomUUID().toString());
+			selfPocGroupMember.setGroupUri(groupUri);
+			selfPocGroupMember.setGroupMemberUri(ownerUri);
+			
+			pocGroupMembers.add(selfPocGroupMember);
+			
+			if(pocGroupMembers != null && pocGroupMembers.size() > 0){
+				for (PocGroupMember pocGroupMember : pocGroupMembers) {
+					pocGroupMemberService.create(pocGroupMember);
+				}
+			}
+			
+			PocDirectory pocDirectory = new PocDirectory();
+			pocDirectory.setId(UUID.randomUUID().toString());
+			pocDirectory.setPocCreator(ownerUri);
+			pocDirectory.setOwnerUri(ownerUri);
+			pocDirectory.setAuid("org.openmobilealliance.poc-groups");
+			
+			String host = pocCompany.getPocHost();
+			String port = pocCompany.getPocPort();
+			String appName = pocCompany.getPocAppName();
+			
+			String auidUri = "" + host + ":" + port + "/" + appName + "/org.openmobilealliance.poc-groups/users/" + ownerUri + "/" + groupFileName;
+			pocDirectory.setAuidUri(auidUri);
+			
+			String auidEtag = UUID.randomUUID().toString();
+			pocDirectory.setAuidEtag(auidEtag);
+			pocDirectory.setDirectoryFileName(groupFileName);
+			pocDirectory.setStatus("Y");
+			pocDirectory.setCreateTime(new Date());
+			pocDirectory.setCreator(sessionUserName);
+			
+			pocDirectoryService.create(pocDirectory);
+			
+			entity.setId(UUID.randomUUID().toString());
+			entity.setGroupUri(groupUri);
+			entity.setGroupFileName(groupFileName);
+			
+			if(entity.getHeadPortrait() != null && !entity.getHeadPortrait().equals("")){
+				entity.setHeadPortrait(entity.getHeadPortrait());
+			}
+			
+			if(entity.getProvince() != null && !entity.getProvince().equals("")){
+				entity.setProvince(entity.getProvince());
+			}
+			
+			if(entity.getCity() != null && !entity.getCity().equals("")){
+				entity.setCity(entity.getCity());
+			}
+			
+			if(entity.getSign() != null && !entity.getSign().equals("")){
+				entity.setSign(entity.getSign());
+			}
+			
+			if(entity.getGroupLevel() != null && !entity.getGroupLevel().equals("")){
+				entity.setGroupLevel(entity.getGroupLevel());
+			}
+			
+			if(entity.getChannelCode() != null && !entity.getChannelCode().equals("")){
+				entity.setChannelCode(entity.getChannelCode());
+			}
+			
+			entity.setCreator(sessionUserName);
+			
+			pocGroupService.create(entity);
+			
+			/*为成员添加组引用*/
+			if(pocGroupMembers != null && pocGroupMembers.size() > 0){
+				for (PocGroupMember member : pocGroupMembers) {
+					
+					String memberOwnerUri = member.getGroupMemberUri();
+					
+					if(memberOwnerUri.equals(ownerUri)){
+						continue;
+					}
+					
+					PocDirectory memberPocDirectory = new PocDirectory();
+					memberPocDirectory.setId(UUID.randomUUID().toString());
+					memberPocDirectory.setPocCreator(ownerUri);
+					memberPocDirectory.setOwnerUri(memberOwnerUri);
+					memberPocDirectory.setAuid("org.openmobilealliance.poc-groups");
+					memberPocDirectory.setAuidUri(auidUri);
+					memberPocDirectory.setAuidEtag(auidEtag);
+					memberPocDirectory.setDirectoryFileName(groupFileName);
+					memberPocDirectory.setStatus("Y");
+					memberPocDirectory.setCreateTime(new Date());
+					memberPocDirectory.setCreator("PocServer");
+					
+					pocDirectoryService.create(memberPocDirectory);
+				}
+			}
+			
+			/*为自己添加 directory org.openmobilealliance.group-usage-list*/
+			PocDirectory usageSelfPocDirectory = new PocDirectory();
+			usageSelfPocDirectory.setId(UUID.randomUUID().toString());
+			usageSelfPocDirectory.setPocCreator(ownerUri);
+			usageSelfPocDirectory.setOwnerUri(ownerUri);
+			usageSelfPocDirectory.setAuid("org.openmobilealliance.poc-groups");
+			
+			String auidUri = "" + host + ":" + port + "/" + appName + "/org.openmobilealliance.poc-groups/users/" + ownerUri + "/" + groupFileName;
+			usageSelfPocDirectory.setAuidUri(auidUri);
+			
+			String auidEtag = UUID.randomUUID().toString();
+			usageSelfPocDirectory.setAuidEtag(auidEtag);
+			usageSelfPocDirectory.setDirectoryFileName(groupFileName);
+			usageSelfPocDirectory.setStatus("Y");
+			usageSelfPocDirectory.setCreateTime(new Date());
+			usageSelfPocDirectory.setCreator(sessionUserName);
+			
+			pocDirectoryService.create(usageSelfPocDirectory);
+			
+			/*为成员添加 directory org.openmobilealliance.group-usage-list*/
+			String usageMemberFileName = "index";
+			String usageMemberAuidEtag = "";
+			
+			if(pocGroupMembers != null && pocGroupMembers.size() > 0){
+				for (PocGroupMember member : pocGroupMembers) {
+					
+					String memberOwnerUri = member.getGroupMemberUri();
+					
+					if(memberOwnerUri.equals(ownerUri)){
+						continue;
+					}
+					
+					String usageMemberAuidUri = "" + host + ":" + port + "/" + appName + "/org.openmobilealliance.group-usage-list/users/" + memberOwnerUri + "/" + usageMemberFileName;
+					
+					PocDirectory usageMemberPocDirectory = new PocDirectory();
+					usageMemberPocDirectory.setId(UUID.randomUUID().toString());
+					usageMemberPocDirectory.setPocCreator(ownerUri);
+					usageMemberPocDirectory.setOwnerUri(memberOwnerUri);
+					usageMemberPocDirectory.setAuid("org.openmobilealliance.group-usage-list");
+					usageMemberPocDirectory.setAuidUri(usageMemberAuidUri);
+					usageMemberPocDirectory.setAuidEtag(usageMemberAuidEtag);
+					usageMemberPocDirectory.setDirectoryFileName(usageMemberFileName);
+					usageMemberPocDirectory.setStatus("Y");
+					usageMemberPocDirectory.setCreateTime(new Date());
+					usageMemberPocDirectory.setCreator(sessionUserName);
+					
+					pocDirectoryService.create(usageMemberPocDirectory);
+				}
+			}
+			
+			String diffDoc = pocGroupService.getXcapDiffDocumentByCreatePocGroup(pocDirectory, oldPocGroup, pocCompany);
+			if(diffDoc != null && !diffDoc.equals("")){
+				
+				List<PocRpcParamenter> pocRpcParamenters = new ArrayList<PocRpcParamenter>();
+				PocRpcParamenter pocRpcParamenter = new PocRpcParamenter();
+				pocRpcParamenter.setParaName("createPocGroupXcapDiff");
+				pocRpcParamenter.setParaType("String");
+				pocRpcParamenter.setParaValue(diffDoc);
+				pocRpcParamenter.setParaSort(1);
+				pocRpcParamenters.add(pocRpcParamenter);
+				
+				pocSyncDataService.SyncData("diffXcapDoc", pocRpcParamenters, pocCompany);
+			}
+			
+			/*runXcapCmd*/
+			pocGroupService.runXcapCmdEditGroup(ownerUri, pocGroupMembers, pocCompany);
+			
+			/*runXcapCmd*/
+			List<PocGroupMember> oldPocGroupMembers = new ArrayList<PocGroupMember>();
+			pocGroupService.runXcapCmdJoinOrRemoveMember(pocCompany, entity, pocGroupMembers, oldPocGroupMembers);
+			
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("create PocGroup exception reason:" + e.getMessage());
+		}
+		return result;
+	}
+
+	@RequestMapping(params = "method=update")
+	@ResponseBody
+	public JsonResult update(HttpServletRequest request, PocGroup entity) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String sessionUserName = ((UserInfo)request.getSession().getAttribute("user")).getUserName();
+			
+			PocGroup model = pocGroupService.get(entity.getId());
+			
+			String ownerUri = model.getOwnerUri();
+			String groupUri = model.getGroupUri();
+			String groupFileName = model.getGroupFileName();
+			
+			PocCompany pocCompany = pocCompanyService.getPocCompanyByOwnerUri(ownerUri);
+			
+			String diffDisplayName = "";
+			if(!entity.getDisplayName().equals(model.getDisplayName())){
+				diffDisplayName = entity.getDisplayName();
+			}
+			
+			String diffInviteMembers = "";
+			if(!entity.getInviteMembers().equals(model.getInviteMembers())){
+				diffInviteMembers = entity.getInviteMembers();
+			}
+			
+			String diffMaxParticipantCount = "";
+			if(!String.valueOf(entity.getMaxParticipantCount()).equals(String.valueOf(model.getMaxParticipantCount()))){
+				diffMaxParticipantCount = String.valueOf(entity.getMaxParticipantCount());
+			}
+			
+			/*更新自己的auidEtag*/
+			Map<String, Object> ownerPocDirectoryParams = new HashMap<String, Object>();
+			ownerPocDirectoryParams.put("pocCreator", ownerUri);
+			ownerPocDirectoryParams.put("ownerUri", ownerUri);
+			ownerPocDirectoryParams.put("auid", "org.openmobilealliance.poc-groups");
+			ownerPocDirectoryParams.put("directoryFileName", groupFileName);
+			List<PocDirectory> ownerPocDirectorys = pocDirectoryService.findForUnPage(ownerPocDirectoryParams);
+			
+			String oldAuidEtag = "";
+			String newAuidEtag = UUID.randomUUID().toString();
+			if(ownerPocDirectorys != null && ownerPocDirectorys.size() > 0){
+				PocDirectory ownerPocDirectory = ownerPocDirectorys.get(0);
+				oldAuidEtag = ownerPocDirectory.getAuidEtag();
+				ownerPocDirectory.setAuidEtag(newAuidEtag);
+				
+				pocDirectoryService.update(ownerPocDirectory);
+			}
+			
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("groupUri", groupUri);
+			List<PocGroupMember> pocGroupMembers = pocGroupMemberService.findForUnPage(params);
+			
+			if(pocGroupMembers != null && pocGroupMembers.size() > 0){
+				for (PocGroupMember pocGroupMember : pocGroupMembers) {
+					if(pocGroupMember.getGroupMemberUri().equals(ownerUri)){
+						continue;
+					}else {
+						pocGroupMemberService.delete(pocGroupMember.getId());
+						
+						Map<String, Object> memberPocDirectoryParams = new HashMap<String, Object>();
+						memberPocDirectoryParams.put("pocCreator", ownerUri);
+						memberPocDirectoryParams.put("ownerUri", pocGroupMember.getGroupMemberUri());
+						memberPocDirectoryParams.put("auid", "org.openmobilealliance.poc-groups");
+						memberPocDirectoryParams.put("directoryFileName", groupFileName);
+						List<PocDirectory> memberPocDirectorys = pocDirectoryService.findForUnPage(memberPocDirectoryParams);
+						
+						if(memberPocDirectorys != null && memberPocDirectorys.size() > 0){
+							PocDirectory memberPocDirectory = memberPocDirectorys.get(0);
+							
+							pocDirectoryService.delete(memberPocDirectory.getId());
+						}
+					}
+				}
+			}
+			
+			List<PocGroupMember> newPocGroupMembers = new ArrayList<PocGroupMember>();
+			String groupMemberUris = request.getParameter("pocGroupMember");
+			String[] array = groupMemberUris.split(",");
+			for (String groupMemberUri : array) {
+				PocGroupMember pocGroupMember = new PocGroupMember();
+				pocGroupMember.setId(UUID.randomUUID().toString());
+				pocGroupMember.setGroupUri(groupUri);
+				pocGroupMember.setGroupMemberUri(groupMemberUri);
+				
+				pocGroupMemberService.create(pocGroupMember);
+				
+				newPocGroupMembers.add(pocGroupMember);
+				
+				String host = pocCompany.getPocHost();
+				String port = pocCompany.getPocPort();
+				String appName = pocCompany.getPocAppName();
+				
+				String auidUri = "" + host + ":" + port + "/" + appName + "/org.openmobilealliance.poc-groups/users/" + ownerUri + "/" + groupFileName;
+				
+				if(groupMemberUri.equals(ownerUri)){
+					continue;
+				}else {
+					PocDirectory memberPocDirectory = new PocDirectory();
+					memberPocDirectory.setId(UUID.randomUUID().toString());
+					memberPocDirectory.setPocCreator(ownerUri);
+					memberPocDirectory.setOwnerUri(groupMemberUri);
+					memberPocDirectory.setAuid("org.openmobilealliance.poc-groups");
+					memberPocDirectory.setAuidUri(auidUri);
+					memberPocDirectory.setAuidEtag(newAuidEtag);
+					memberPocDirectory.setDirectoryFileName(groupFileName);
+					memberPocDirectory.setStatus("Y");
+					memberPocDirectory.setCreateTime(new Date());
+					memberPocDirectory.setCreator("PocServer");
+					
+					pocDirectoryService.create(memberPocDirectory);
+				}
+			}
+			
+			model.setDisplayName(entity.getDisplayName());
+			model.setInviteMembers(entity.getInviteMembers());
+			model.setMaxParticipantCount(entity.getMaxParticipantCount());
+			model.setIsPrivate(entity.getIsPrivate());
+			model.setGroupType(entity.getGroupType() == null ? "" : entity.getGroupType());
+			model.setRoleId(entity.getRoleId());
+			
+			String headPortrait = entity.getHeadPortrait() == null ? "" : entity.getHeadPortrait();
+			model.setHeadPortrait(headPortrait);
+			
+			String province = entity.getProvince() == null ? "" : entity.getProvince();
+			model.setProvince(province);
+			
+			String city = entity.getCity() == null ? "" : entity.getCity();
+			model.setCity(city);
+			
+			String sign = entity.getSign() == null ? "" : entity.getSign();
+			model.setSign(sign);
+			
+			String groupLevel = entity.getGroupLevel() == null ? "" : entity.getGroupLevel();
+			model.setGroupLevel(groupLevel);
+			
+			String channelCode = entity.getChannelCode() == null ? "" : entity.getChannelCode();
+			model.setChannelCode(channelCode);
+			
+			model.setStatus(entity.getStatus());
+			model.setUpdator(sessionUserName);
+			
+			String diffDoc = pocGroupService.getXcapDiffDocumentByUpdatePocGroup(oldAuidEtag, newAuidEtag, entity, model, pocGroupMembers, newPocGroupMembers, diffDisplayName, diffInviteMembers, diffMaxParticipantCount, pocCompany);
+			if(diffDoc != null && !diffDoc.equals("")){
+				
+				List<PocRpcParamenter> pocRpcParamenters = new ArrayList<PocRpcParamenter>();
+				PocRpcParamenter pocRpcParamenter = new PocRpcParamenter();
+				pocRpcParamenter.setParaName("updatePocGroupXcapDiff");
+				pocRpcParamenter.setParaType("String");
+				pocRpcParamenter.setParaValue(diffDoc);
+				pocRpcParamenter.setParaSort(1);
+				pocRpcParamenters.add(pocRpcParamenter);
+				
+				pocSyncDataService.SyncData("diffXcapDoc", pocRpcParamenters, pocCompany);
+			}
+			
+			/*runXcapCmd*/
+			pocGroupService.runXcapCmdEditGroup(ownerUri, newPocGroupMembers, pocCompany);
+			
+			/*runXcapCmd*/
+			pocGroupService.runXcapCmdJoinOrRemoveMember(pocCompany, model, newPocGroupMembers, pocGroupMembers);
+			
+			pocGroupService.update(model);
+			
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("update PocGroup exception reason:" + e.getMessage());
+		}
+		return result;
+	}
+
+	@RequestMapping(params = "method=get")
+	@ResponseBody
+	public JSONObject get(HttpServletRequest request, String id) {
+		PocGroup entity = pocGroupService.get(id);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("id", entity.getId());
+		map.put("displayName", entity.getDisplayName());
+		map.put("inviteMembers", entity.getInviteMembers());
+		map.put("maxParticipantCount", entity.getMaxParticipantCount());
+		map.put("isPrivate", entity.getIsPrivate() == null ? "" : entity.getIsPrivate());
+		map.put("groupType", entity.getGroupType() == null ? "" : entity.getGroupType());
+		map.put("roleId", entity.getRoleId());
+		map.put("headPortrait", entity.getHeadPortrait() == null ? "" : entity.getHeadPortrait());
+		map.put("province", entity.getProvince() == null ? "" : entity.getProvince());
+		map.put("city", entity.getCity() == null ? "" : entity.getCity());
+		map.put("sign", entity.getSign() == null ? "" : entity.getSign());
+		map.put("groupLevel", entity.getGroupLevel() == null ? "" : entity.getGroupLevel());
+		map.put("channelCode", entity.getChannelCode() == null ? "" : entity.getChannelCode());
+		map.put("status", entity.getStatus());
+		
+		JSONObject jsonObject = JSONObject.fromObject(map);
+		return jsonObject;
+	}
+	
+	@RequestMapping(params = "method=delete")
+	@ResponseBody
+	public JsonResult delete(HttpServletRequest request, String ids) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String[] array = ids.split(",");
+			
+			for (String id : array) {
+				PocGroup pocGroup = pocGroupService.get(id);
+				
+				if(pocGroup != null){
+					
+					String ownerUri = pocGroup.getOwnerUri();
+					String groupUri = pocGroup.getGroupUri();
+					String groupFileName = pocGroup.getGroupFileName();
+					
+					PocCompany pocCompany = pocCompanyService.getPocCompanyByOwnerUri(ownerUri);
+					
+					PocGroup oldPocGroup = null;
+					Map<String, Object> oldPocGroupParams = new HashMap<String, Object>();
+					oldPocGroupParams.put("ownerUri", ownerUri);
+					List<PocGroup> oldPocGroups = pocGroupService.findForUnPage(oldPocGroupParams);
+					if(oldPocGroups != null && oldPocGroups.size() > 0){
+						oldPocGroup = oldPocGroups.get(0);
+					}
+					
+					Map<String, Object> pocGroupMemberParams = new HashMap<String, Object>();
+					pocGroupMemberParams.put("ownerUri", ownerUri);
+					pocGroupMemberParams.put("groupUri", groupUri);
+					List<PocGroupMember> pocGroupMembers = pocGroupMemberService.findForUnPage(pocGroupMemberParams);
+					
+					if(pocGroupMembers != null && pocGroupMembers.size() > 0){
+						for (PocGroupMember pocGroupMember : pocGroupMembers) {
+							pocGroupMemberService.delete(pocGroupMember.getId());
+						}
+					}
+					
+					Map<String, Object> pocDirectoryParams = new HashMap<String, Object>();
+					pocDirectoryParams.put("pocCreator", ownerUri);
+					pocDirectoryParams.put("ownerUri", ownerUri);
+					pocDirectoryParams.put("auid", "org.openmobilealliance.poc-groups");
+					pocDirectoryParams.put("directoryFileName", groupFileName);
+					List<PocDirectory> pocDirectorys = pocDirectoryService.findForUnPage(pocDirectoryParams);
+					
+					PocDirectory pocDirectory = null;
+					if(pocDirectorys != null && pocDirectorys.size() > 0){
+						pocDirectory = pocDirectorys.get(0);
+						pocDirectoryService.delete(pocDirectory.getId());
+					}
+					
+					if(pocGroupMembers != null && pocGroupMembers.size() > 0){
+						for (PocGroupMember pocGroupMember : pocGroupMembers) {
+							if(pocGroupMember.getGroupMemberUri().equals(ownerUri)){
+								continue;
+							}else {
+								Map<String, Object> memberPocDirectoryParams = new HashMap<String, Object>();
+								memberPocDirectoryParams.put("pocCreator", ownerUri);
+								memberPocDirectoryParams.put("ownerUri", pocGroupMember.getGroupMemberUri());
+								memberPocDirectoryParams.put("auid", "org.openmobilealliance.poc-groups");
+								memberPocDirectoryParams.put("directoryFileName", groupFileName);
+								List<PocDirectory> memberPocDirectorys = pocDirectoryService.findForUnPage(memberPocDirectoryParams);
+								
+								if(memberPocDirectorys != null && memberPocDirectorys.size() > 0){
+									PocDirectory memberPocDirectory = memberPocDirectorys.get(0);
+									
+									pocDirectoryService.delete(memberPocDirectory.getId());
+								}
+							}
+						}
+					}
+					
+					pocGroupService.delete(id);
+					
+					String diffDoc = pocGroupService.getXcapDiffDocumentByDeletePocGroup(pocDirectory, oldPocGroup, pocCompany);
+					if(diffDoc != null && !diffDoc.equals("")){
+						
+						List<PocRpcParamenter> pocRpcParamenters = new ArrayList<PocRpcParamenter>();
+						PocRpcParamenter pocRpcParamenter = new PocRpcParamenter();
+						pocRpcParamenter.setParaName("createPocGroupXcapDiff");
+						pocRpcParamenter.setParaType("String");
+						pocRpcParamenter.setParaValue(diffDoc);
+						pocRpcParamenter.setParaSort(1);
+						pocRpcParamenters.add(pocRpcParamenter);
+						
+						pocSyncDataService.SyncData("diffXcapDoc", pocRpcParamenters, pocCompany);
+					}
+					
+					/*runXcapCmd*/
+					pocGroupService.runXcapCmdEditGroup(ownerUri, pocGroupMembers, pocCompany);
+					
+					/*runXcapCmd*/
+					List<PocGroupMember> newPocGroupMembers = new ArrayList<PocGroupMember>();
+					pocGroupService.runXcapCmdJoinOrRemoveMember(pocCompany, pocGroup, newPocGroupMembers, pocGroupMembers);
+				}
+			}
+			
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("delete PocGroup exception reason:" + e.getMessage());
+		}
+		return result;
+	}
+	
+	@SuppressWarnings("deprecation")
+	@RequestMapping(params = "method=getfilepath")
+	public void getExpFilePath(HttpServletRequest request, HttpServletResponse response) {
+		String filePath = "";
+		
+		String ownerUri = request.getParameter("ownerUri");
+		String groupUri = request.getParameter("groupUri");
+		String displayName = request.getParameter("displayName");
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", ownerUri);
+		params.put("groupUri", groupUri);
+		params.put("displayName", displayName);
+		
+		List<PocGroup> list = pocGroupService.findForUnPage(params);
+		
+		if(list.size() > 0) {
+			try {
+				String path = request.getRealPath("/") + "userfile\\xls";
+				
+				filePath = pocGroupService.ExpExcel(list, path);
+				
+			} catch (Exception e) {
+				// TODO: handle exception
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		try {
+			filePath = response.encodeURL(filePath);
+			response.getWriter().write(filePath);
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.print(e.getMessage());
+		}
+	}
+	
+	@SuppressWarnings("rawtypes")
+	@RequestMapping(params = "method=buildpocgrouproletree")
+	@ResponseBody
+	public JSONArray buildPocGroupRoleTree(HttpServletRequest request) {
+		List<String> pocGroupRoleIds = new ArrayList<String>();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		List<PocGroupRole> pocGroupRoles = pocGroupRoleService.findForUnPage(params);
+		
+		Map<String, Object> pocGroupRoleMap = new HashMap<String, Object>();
+		
+		if(pocGroupRoles != null && pocGroupRoles.size() > 0){
+			for (PocGroupRole pocGroupRole : pocGroupRoles) {
+				if(!pocGroupRoleMap.containsKey(pocGroupRole.getRoleId())){
+					pocGroupRoleMap.put(pocGroupRole.getRoleId(), pocGroupRole.getRoleId());
+				}
+			}
+		}
+		
+		for (Map.Entry entry : pocGroupRoleMap.entrySet()) {
+			pocGroupRoleIds.add(entry.getKey().toString());
+		}
+		
+		JSONArray jSONArray = pocGroupRoleService.buildPocGroupRoleTree(pocGroupRoleIds);
+		
+		return jSONArray;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	@RequestMapping(params = "method=buildeditpocgrouproletree")
+	@ResponseBody
+	public JSONArray buildEditPocGroupRoleTree(HttpServletRequest request, String id) {
+		List<String> pocGroupRoleIds = new ArrayList<String>();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		List<PocGroupRole> pocGroupRoles = pocGroupRoleService.findForUnPage(params);
+		
+		Map<String, Object> pocGroupRoleMap = new HashMap<String, Object>();
+		
+		if(pocGroupRoles != null && pocGroupRoles.size() > 0){
+			for (PocGroupRole pocGroupRole : pocGroupRoles) {
+				if(!pocGroupRoleMap.containsKey(pocGroupRole.getRoleId())){
+					pocGroupRoleMap.put(pocGroupRole.getRoleId(), pocGroupRole.getRoleId());
+				}
+			}
+		}
+		
+		for (Map.Entry entry : pocGroupRoleMap.entrySet()) {
+			pocGroupRoleIds.add(entry.getKey().toString());
+		}
+		
+		JSONArray jSONArray = pocGroupRoleService.buildEditPocGroupRoleTree(pocGroupRoleIds, id);
+		
+		return jSONArray;
+	}
+}

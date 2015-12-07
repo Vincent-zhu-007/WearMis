@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileUserExtension">
+	<typeAlias alias="mobileUserExtension" type="com.sg.mobile.entity.MobileUserExtension" />
+	
+	<resultMap id="MobileUserExtensionResult" class="mobileUserExtension">
+		<result property="extensionId" column="ExtensionId" />
+		<result property="trueName" column="TrueName" />
+		<result property="mobilePhone" column="MobilePhone" />
+		<result property="gender" column="Gender" />
+		<result property="mail" column="Mail" />
+		<result property="birthday" column="Birthday" />
+		<result property="headPortrait" column="HeadPortrait" />
+		<result property="province" column="Province" />
+		<result property="city" column="City" />
+		<result property="sign" column="Sign" />
+		<result property="isOpenExtension" column="IsOpenExtension" />
+		<result property="meiNo" column="MeiNo" />
+		<result property="mobileRole" column="MobileRole" />
+		<result property="webSiteRole" column="WebSiteRole" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		
+	</sql>
+	
+	<insert id="create" parameterClass="mobileUserExtension">
+		INSERT INTO MobileUserExtension (ExtensionId, TrueName, MobilePhone, Gender, Mail, Birthday, HeadPortrait, Province, City, Sign, IsOpenExtension, MobileRole, WebSiteRole) 
+		VALUES (#extensionId#, #trueName#, #mobilePhone#, #gender#, #mail#, #birthday#, #headPortrait#, #province#, #city#, #sign#, #isOpenExtension#, #mobileRole#, #webSiteRole#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileUserExtension">
+		UPDATE MobileUserExtension 
+		<dynamic prepend="set">
+		<isNotNull prepend="," property="trueName">
+				TrueName=#trueName#
+		</isNotNull>
+		<isNotNull prepend="," property="mobilePhone">
+				MobilePhone=#mobilePhone#
+		</isNotNull>
+		<isNotNull prepend="," property="gender">
+				Gender=#gender#
+		</isNotNull>
+		<isNotNull prepend="," property="mail">
+				Mail=#mail#
+		</isNotNull>
+		<isNotNull prepend="," property="birthday">
+				Birthday=#birthday#
+		</isNotNull>
+		<isNotNull prepend="," property="headPortrait">
+				HeadPortrait=#headPortrait#
+		</isNotNull>
+		<isNotNull prepend="," property="province">
+				Province=#province#
+		</isNotNull>
+		<isNotNull prepend="," property="city">
+				City=#city#
+		</isNotNull>
+		<isNotNull prepend="," property="sign">
+				Sign=#sign#
+		</isNotNull>
+		<isNotNull prepend="," property="isOpenExtension">
+				IsOpenExtension=#isOpenExtension#
+		</isNotNull>
+		<isNotNull prepend="," property="meiNo">
+				MeiNo=#meiNo#
+		</isNotNull>
+		<isNotNull prepend="," property="mobileRole">
+				MobileRole=#mobileRole#
+		</isNotNull>
+		<isNotNull prepend="," property="webSiteRole">
+				WebSiteRole=#webSiteRole#
+		</isNotNull>
+		
+		WHERE ExtensionId=#extensionId#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileUserExtensionResult" parameterClass="String">
+		SELECT A.* FROM MobileUserExtension A
+		WHERE A.ExtensionId=#extensionId#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileUserExtension A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileUserExtensionResult">
+		SELECT A.* FROM MobileUserExtension A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileUserExtensionResult">
+		SELECT A.* FROM MobileUserExtension A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MobileUserExtension WHERE ExtensionId=#extensionId#
+	</delete>
+</sqlMap>

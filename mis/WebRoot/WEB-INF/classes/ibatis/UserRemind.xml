@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+    
+<sqlMap namespace="UserRemind">
+	<typeAlias alias="userRemind" type="com.sg.entity.UserRemind" />
+	
+	<resultMap id="UserRemindResult" class="userRemind">
+		<result property="id" column="Id" />
+		<result property="title" column="Title" />
+		<result property="content" column="Content" />
+		<result property="targetUser" column="TargetUser" />
+		<result property="processTag" column="ProcessTag" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="title">
+			<![CDATA[A.Title like CONCAT('%', #title#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="processTag">
+			<![CDATA[A.ProcessTag=#processTag#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="targetUser">
+			<![CDATA[A.TargetUser like CONCAT('%', #targetUser#, '%')]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="userRemind">
+		INSERT INTO UserRemind (Id, Title, Content, TargetUser, ProcessTag, Status, CreateTime, Creator) 
+		VALUES (#id#, #title#, #content#, #targetUser#, #processTag#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="userRemind">
+		UPDATE UserRemind 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="title">
+				Title=#title#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="content">
+				Content=#content#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="targetUser">
+				TargetUser=#targetUser#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="processTag">
+				ProcessTag=#processTag#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="UserRemindResult" parameterClass="String">
+		SELECT A.* FROM UserRemind A
+		WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM UserRemind A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="UserRemindResult">
+		SELECT A.* FROM UserRemind A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="UserRemindResult">
+		SELECT A.* FROM UserRemind A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="String">
+		DELETE FROM UserRemind WHERE Id=#id#
+	</delete>
+</sqlMap>

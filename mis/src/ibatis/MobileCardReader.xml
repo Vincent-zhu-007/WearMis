@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileCardReader">
+	<typeAlias alias="mobileCardReader" type="com.sg.mobile.entity.MobileCardReader" />
+	
+	<resultMap id="MobileCardReaderResult" class="mobileCardReader">
+		<result property="id" column="Id" />
+		<result property="equipmentNo" column="EquipmentNo" />
+		<result property="description" column="Description" />
+		<result property="categoryCode" column="CategoryCode" />
+		<result property="areaCode" column="AreaCode" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="equipmentNo">
+			<![CDATA[A.EquipmentNo=#equipmentNo#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[A.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileCardReader">
+		INSERT INTO MobileCardReader (Id, EquipmentNo, Description, CategoryCode, AreaCode, Status, CreateTime, Creator) 
+		VALUES (#id#, #equipmentNo#, #description#, #categoryCode#, #areaCode#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileCardReader">
+		UPDATE MobileCardReader 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="equipmentNo">
+				EquipmentNo=#equipmentNo#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="categoryCode">
+				CategoryCode=#categoryCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="areaCode">
+				AreaCode=#areaCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileCardReaderResult" parameterClass="String">
+		SELECT A.* FROM MobileCardReader A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileCardReader A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileCardReaderResult">
+		SELECT A.* FROM MobileCardReader A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileCardReaderResult">
+		SELECT A.* FROM MobileCardReader A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="String">
+		DELETE FROM MobileCardReader WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

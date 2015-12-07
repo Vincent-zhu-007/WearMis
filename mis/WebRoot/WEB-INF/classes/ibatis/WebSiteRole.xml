@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="WebSiteRole">
+	<typeAlias alias="webSiteRole" type="com.sg.mobile.entity.WebSiteRole" />
+	
+	<resultMap id="WebSiteRoleResult" class="WebSiteRole">
+		<result property="id" column="Id" />
+		<result property="roleId" column="RoleId" />
+		<result property="codeName" column="CodeName" />
+		<result property="description" column="Description" />
+		<result property="category" column="Category" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="permission" column="Permission" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="codeName">
+			<![CDATA[B.CodeName=#codeName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="category">
+			<![CDATA[B.Category=#category#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[B.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="WebSiteRole">
+		INSERT INTO WebSiteRole (RoleId, Permission) 
+		VALUES (#roleId#, #permission#)
+	</insert>
+	
+	<update id="update" parameterClass="WebSiteRole">
+		UPDATE WebSiteRole 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="codeName">
+				Permission=#permission#
+		</isNotEmpty>
+		
+		WHERE RoleId=#roleId#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="WebSiteRoleResult" parameterClass="String">
+		SELECT A.*,B.* FROM WebSiteRole A
+		JOIN Code B ON A.RoleId=B.Id
+		WHERE A.RoleId=#roleId#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM WebSiteRole A
+		JOIN Code B ON A.RoleId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="WebSiteRoleResult">
+		SELECT A.*,B.* FROM WebSiteRole A
+		JOIN Code B ON A.RoleId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY B.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="WebSiteRoleResult">
+		SELECT A.*,B.* FROM WebSiteRole A
+		JOIN Code B ON A.RoleId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY B.CreateTime DESC
+	</select>
+	
+	<select id="findpermissionbyroles" parameterClass="map" resultMap="WebSiteRoleResult">
+		SELECT A.*,B.* FROM WebSiteRole A
+		JOIN Code B ON A.RoleId=B.Id
+		<![CDATA[WHERE B.CodeName IN ($codeName$)]]>
+		ORDER BY B.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM WebSiteRole WHERE RoleId=#roleId#
+	</delete>
+</sqlMap>

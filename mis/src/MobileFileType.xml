@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MobileFileTypes>
+	<MobileFileType id="1" type="gif,jpg,jpeg,png" description="图片" />
+	<MobileFileType id="2" type="swf,flv,avi,mpg,asf,rm,rmvb,mp4,3gp" description="视频" />
+	<MobileFileType id="3" type="mp3,mid,amr" description="声音" />
+	<MobileFileType id="4" type="wav,wma,wmv" description="录音" />
+	<MobileFileType id="5" type="doc,docx,xls,xlsx,ppt,htm,html,txt,zip,rar,gz,bz2,apk" description="其他" />
+</MobileFileTypes>

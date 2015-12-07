@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="CacheConfig">
+	<typeAlias alias="cacheConfig" type="com.sg.entity.CacheConfig" />
+	
+	<resultMap id="CacheConfigResult" class="cacheConfig">
+		<result property="id" column="Id" />
+		<result property="codeName" column="CodeName" />
+		<result property="description" column="Description" />
+		<result property="clearUrl" column="ClearUrl" />
+		<result property="asyncEtag" column="AsyncEtag" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="codeName">
+			<![CDATA[A.CodeName=#codeName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[A.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="cacheConfig">
+		INSERT INTO CacheConfig (Id, CodeName, Description, ClearUrl, AsyncEtag, Status, CreateTime, Creator) 
+		VALUES (#id#, #codeName#, #description#, #clearUrl#, #asyncEtag#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="cacheConfig">
+		UPDATE CacheConfig 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="codeName">
+				CodeName=#codeName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="clearUrl">
+				ClearUrl=#clearUrl#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="asyncEtag">
+				AsyncEtag=#asyncEtag#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="CacheConfigResult" parameterClass="String">
+		SELECT A.* FROM CacheConfig A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM CacheConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="CacheConfigResult">
+		SELECT A.* FROM CacheConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="CacheConfigResult">
+		SELECT A.* FROM CacheConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM CacheConfig WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

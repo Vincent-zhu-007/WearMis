@@ -1,0 +1,155 @@
+package com.sg.weixin.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONObject;
+
+import org.dom4j.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.sg.mobile.entity.MobileServerConfig;
+import com.sg.mobile.entity.MobileUser;
+import com.sg.mobile.service.MobileUserService;
+import com.sg.service.BaseEntityManager;
+import com.sg.util.MD5;
+import com.sg.weixin.dao.WeiXinInMobileDao;
+import com.sg.weixin.entity.WeiXinInMobile;
+import com.sg.weixin.entity.WeiXinUser;
+
+@Service
+public class WeiXinInMobileService implements BaseEntityManager<WeiXinInMobile> {
+	@Resource
+	private WeiXinInMobileDao weiXinInMobileDao;
+	
+	@Autowired
+	private WeiXinUserService weiXinUserService;
+	
+	@Autowired
+	private MobileUserService mobileUserService;
+
+	@Override
+	public void create(WeiXinInMobile entity) {
+		// TODO Auto-generated method stub
+		weiXinInMobileDao.create(entity);
+	}
+
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		weiXinInMobileDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<WeiXinInMobile> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return weiXinInMobileDao.find(params, pageParams);
+	}
+
+	@Override
+	public WeiXinInMobile get(String id) {
+		// TODO Auto-generated method stub
+		return weiXinInMobileDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<WeiXinInMobile> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return weiXinInMobileDao.findForUnPage(params);
+	}
+
+	@Override
+	public void update(WeiXinInMobile entity) {
+		// TODO Auto-generated method stub
+		weiXinInMobileDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return weiXinInMobileDao.getTotalCount(params);
+	}
+	
+	public String createWeiXinInMobileJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String openId = "";
+		if(jsonObject.containsKey("openId")){
+			openId = jsonObject.opt("openId").toString();
+		}
+		
+		String mobileUserName = "";
+		if(jsonObject.containsKey("mobileUserName")){
+			mobileUserName = jsonObject.opt("mobileUserName").toString();
+		}
+		
+		String numButton = "";
+		if(jsonObject.containsKey("numButton")){
+			numButton = jsonObject.opt("numButton").toString();
+		}
+		
+		if(openId != null && !openId.equals("") && mobileUserName != null && !mobileUserName.equals("") && numButton != null && !numButton.equals("")){
+			WeiXinUser weiXinUser = weiXinUserService.getWeiXinUserByOpenId(openId);
+			
+			if(weiXinUser != null){
+				MobileUser mobileUser = mobileUserService.getMobileUserByUserName(mobileUserName);
+				
+				if(mobileUser != null){
+					String weiXinOwnerUri = weiXinUser.getOwnerUri();
+					String mobileOwnerUri = mobileUser.getOwnerUri();
+					
+					Map<String, Object> weiXinInMobileParams = new HashMap<String, Object>();
+					weiXinInMobileParams.put("weiXinOwnerUri", weiXinOwnerUri);
+					weiXinInMobileParams.put("mobileOwnerUri", mobileOwnerUri);
+					
+					List<WeiXinInMobile> weiXinInMobiles = findForUnPage(weiXinInMobileParams);
+					
+					if(weiXinInMobiles != null && weiXinInMobiles.size() > 0){
+						jsonObjectResult.put("result", "0");
+						jsonObjectResult.put("message", "数据已经存在");
+					}else {
+						WeiXinInMobile weiXinInMobile = new WeiXinInMobile();
+						weiXinInMobile.setId(UUID.randomUUID().toString());
+						weiXinInMobile.setWeiXinOwnerUri(weiXinOwnerUri);
+						weiXinInMobile.setMobileOwnerUri(mobileOwnerUri);
+						weiXinInMobile.setStatus("Y");
+						weiXinInMobile.setCreator(weiXinOwnerUri);
+						
+						create(weiXinInMobile);
+						
+						
+						
+						jsonObjectResult.put("result", "1");
+						jsonObjectResult.put("data", "200");
+					}
+				}else {
+					jsonObjectResult.put("result", "0");
+					jsonObjectResult.put("message", "非法设备");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "非法用户");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要的参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+}

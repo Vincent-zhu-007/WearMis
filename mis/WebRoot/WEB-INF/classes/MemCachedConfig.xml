@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MemCachedConfig>  
+    <Enabled>true</Enabled>
+    <Servers>
+    	<Server host="127.0.0.1" post="11211" weight="2" />
+    </Servers>
+    
+    <Config>
+        <property name="initConn">5</property>
+        <property name="minConn">5</property>
+        <property name="maxConn">250</property>
+        <property name="maxIdle">21600000</property>
+        <property name="maintSleep">30</property>
+        <property name="socketTO">10000</property>
+        <property name="socketConnTO">0</property>
+        <property name="compressEnable">true</property>
+        <property name="compressThreshold">65536</property>
+    </Config>
+</MemCachedConfig>

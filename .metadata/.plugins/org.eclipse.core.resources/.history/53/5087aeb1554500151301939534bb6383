@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"  
+    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+
+<sqlMapConfig>
+	<settings useStatementNamespaces="true" cacheModelsEnabled="true"
+		enhancementEnabled="true" lazyLoadingEnabled="true" maxRequests="128"
+		maxSessions="16" maxTransactions="8" />
+	
+	<sqlMap resource="ibatis/UserInfo.xml" />
+	<sqlMap resource="ibatis/MenuConfig.xml" />
+	<sqlMap resource="ibatis/Code.xml" />
+	<sqlMap resource="ibatis/Role.xml" />
+	<sqlMap resource="ibatis/UserInRole.xml" />
+	<sqlMap resource="ibatis/UserRemind.xml" />
+	<sqlMap resource="ibatis/Province.xml" />
+	<sqlMap resource="ibatis/City.xml" />
+	<sqlMap resource="ibatis/CacheConfig.xml" />
+	
+	<sqlMap resource="ibatis/MobileServerConfig.xml" />
+	<sqlMap resource="ibatis/MobileUser.xml" />
+	<sqlMap resource="ibatis/MobileUserExtension.xml" />
+	<sqlMap resource="ibatis/MobileVersionConfig.xml" />
+	<sqlMap resource="ibatis/MobileCompany.xml" />
+	<sqlMap resource="ibatis/MobileOrgStructure.xml" />
+	<sqlMap resource="ibatis/MobileMenuConfig.xml" />
+	<sqlMap resource="ibatis/MobileRole.xml" />
+	<sqlMap resource="ibatis/MobileCardReader.xml" />
+	<sqlMap resource="ibatis/MobileContact.xml" />
+	<sqlMap resource="ibatis/MobileContactMember.xml" />
+	<sqlMap resource="ibatis/MobileAppConfig.xml" />
+	<sqlMap resource="ibatis/MobileApp.xml" />
+	<sqlMap resource="ibatis/MobileAppItem.xml" />
+	<sqlMap resource="ibatis/WebSiteMenuConfig.xml" />
+	<sqlMap resource="ibatis/WebSiteRole.xml" />
+	<sqlMap resource="ibatis/MobileCardReaderReport.xml" />
+	<sqlMap resource="ibatis/MobileCardReaderReport.xml" />
+</sqlMapConfig>

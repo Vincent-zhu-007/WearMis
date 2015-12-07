@@ -1,0 +1,477 @@
+package com.sg.poc.service;
+
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.sg.poc.dao.PocMessageCenterDao;
+import com.sg.poc.entity.PocCompany;
+import com.sg.poc.entity.PocMessageCenter;
+import com.sg.poc.entity.PocRpcParamenter;
+import com.sg.poc.entity.PocServerConfig;
+import com.sg.poc.entity.PocUser;
+import com.sg.poc.util.UrlUtil;
+import com.sg.service.BaseEntityManager;
+import com.sg.service.CodeService;
+import com.sg.util.SendHttpRequestUtil;
+
+@Service
+public class PocMessageCenterService implements BaseEntityManager<PocMessageCenter> {
+	@Resource
+	private PocMessageCenterDao pocMessageCenterDao;
+	
+	@Autowired
+	private CodeService codeService;
+	
+	@Autowired
+	private PocUserService pocUserService;
+	
+	@Autowired
+	private PocCompanyService pocCompanyService;
+	
+	@Autowired
+	private PocSyncDataService pocSyncDataService;
+
+	@Override
+	public void create(PocMessageCenter entity) {
+		// TODO Auto-generated method stub
+		pocMessageCenterDao.create(entity);
+	}
+
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		pocMessageCenterDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocMessageCenter> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return pocMessageCenterDao.find(params, pageParams);
+	}
+
+	@Override
+	public PocMessageCenter get(String id) {
+		// TODO Auto-generated method stub
+		return pocMessageCenterDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocMessageCenter> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return pocMessageCenterDao.findForUnPage(params);
+	}
+
+	@Override
+	public void update(PocMessageCenter entity) {
+		// TODO Auto-generated method stub
+		pocMessageCenterDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return pocMessageCenterDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<PocMessageCenter> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			Map<String, Object> messageTypeMap = codeService.getCodeCacheMapByCategory("POCMESSAGECENTERMESSAGETYPE");
+			Map<String, Object> porcessMethodTypeMap = codeService.getCodeCacheMapByCategory("HTTPMETHOD");
+			Map<String, Object> statusMap = codeService.getCodeCacheMapByCategory("STATUS");
+			
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("POC消息列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("用户地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("描述");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("消息类型");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("主机");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("端口");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("应用名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 6);
+			cell.setCellValue("第一部分");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 7);
+			cell.setCellValue("第二部分");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 8);
+			cell.setCellValue("请求类型");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 9);
+			cell.setCellValue("内容类型");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 10);
+			cell.setCellValue("内容");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 11);
+			cell.setCellValue("是否处理");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 12);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 13);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				PocMessageCenter model = (PocMessageCenter) list.get(i);
+				
+				String messageType = "";
+				if(model.getMessageType() != null && !model.getMessageType().equals("")){
+					messageType = messageTypeMap.get(model.getMessageType()).toString();
+				}
+				
+				String porcessMethodType = "";
+				if(model.getPorcessMethodType() != null && !model.getPorcessMethodType().equals("")){
+					porcessMethodType = porcessMethodTypeMap.get(model.getPorcessMethodType()).toString();
+				}
+				
+				String status = statusMap.get(model.getStatus()).toString();
+				
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getOwnerUri());
+				row.createCell((short) 1).setCellValue(model.getDescription());
+				row.createCell((short) 2).setCellValue(messageType);
+				row.createCell((short) 3).setCellValue(model.getProcessHost());
+				row.createCell((short) 4).setCellValue(model.getProcessPort());
+				row.createCell((short) 5).setCellValue(model.getProcessAppName());
+				row.createCell((short) 6).setCellValue(model.getProcessUrlPart1());
+				row.createCell((short) 7).setCellValue(model.getProcessUrlPart2());
+				row.createCell((short) 8).setCellValue(porcessMethodType);
+				row.createCell((short) 9).setCellValue(model.getProcessContentType());
+				row.createCell((short) 10).setCellValue(model.getProcessContent());
+				row.createCell((short) 11).setCellValue(model.getIsProcess());
+				row.createCell((short) 12).setCellValue(status);
+				cell = row.createCell((short) 13);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public String createPocMessageCenterJson(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		String companyCode = pocServerConfig.getCompanyCode();
+		
+		PocCompany pocCompany = pocCompanyService.getPocCompanyByComapnyCode(companyCode);
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String ownerUri = "";
+		if(jsonObject.containsKey("ownerUri")){
+			ownerUri = jsonObject.opt("ownerUri").toString();
+		}
+		
+		if(ownerUri != null && !ownerUri.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("ownerUri", ownerUri);
+			
+			List<PocUser> pocUsers = pocUserService.findForUnPage(params);
+			
+			if(pocUsers != null && pocUsers.size() > 0){
+				PocMessageCenter model = new PocMessageCenter();
+				
+				String id = UUID.randomUUID().toString();
+				
+				model.setId(id);
+				model.setOwnerUri(ownerUri);
+				
+				String targetUris = "";
+				if(jsonObject.containsKey("targetUris")){
+					targetUris = jsonObject.opt("targetUris").toString();
+					
+					model.setTargetUris(targetUris);
+				}
+				
+				String description = "";
+				if(jsonObject.containsKey("description")){
+					description = jsonObject.opt("description").toString();
+					
+					model.setDescription(description);
+				}
+				
+				String messageType = "";
+				if(jsonObject.containsKey("messageType")){
+					messageType = jsonObject.opt("messageType").toString();
+					
+					model.setMessageType(messageType);
+				}
+				
+				String processHost = "";
+				if(jsonObject.containsKey("processHost")){
+					processHost = jsonObject.opt("processHost").toString();
+					
+					model.setProcessHost(processHost);
+				}
+				
+				String processPort = "";
+				if(jsonObject.containsKey("processPort")){
+					processPort = jsonObject.opt("processPort").toString();
+					
+					model.setProcessPort(processPort);
+				}
+				
+				String processAppName = "";
+				if(jsonObject.containsKey("processAppName")){
+					processAppName = jsonObject.opt("processAppName").toString();
+					
+					model.setProcessAppName(processAppName);
+				}
+				
+				String processUrlPart1 = "";
+				if(jsonObject.containsKey("processUrlPart1")){
+					processUrlPart1 = jsonObject.opt("processUrlPart1").toString();
+					
+					model.setProcessUrlPart1(processUrlPart1);
+				}
+				
+				String processUrlPart2 = "";
+				if(jsonObject.containsKey("processUrlPart2")){
+					processUrlPart2 = jsonObject.opt("processUrlPart2").toString();
+					
+					model.setProcessUrlPart2(processUrlPart2);
+				}
+				
+				String porcessMethodType = "";
+				if(jsonObject.containsKey("porcessMethodType")){
+					porcessMethodType = jsonObject.opt("porcessMethodType").toString();
+					
+					model.setPorcessMethodType(porcessMethodType);
+				}
+				
+				String processContentType = "";
+				if(jsonObject.containsKey("processContentType")){
+					processContentType = jsonObject.opt("processContentType").toString();
+					
+					model.setProcessContentType(processContentType);
+				}
+				
+				String processContent = "";
+				if(jsonObject.containsKey("processContent")){
+					processContent = jsonObject.opt("processContent").toString();
+					
+					model.setProcessContent(processContent);
+				}
+				
+				model.setIsProcess("N");
+				model.setStatus("Y");
+				model.setCreator(ownerUri);
+				
+				create(model);
+				
+				runXcapCmdNotice(id, pocCompany);
+				
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", id);
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该用户不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public void runXcapCmdNotice(String id, PocCompany pocCompany){
+		/*runXcapCmd*/
+		if(id != null && !id.equals("")){
+			List<PocRpcParamenter> pocRpcParamenters = new ArrayList<PocRpcParamenter>();
+			
+			PocMessageCenter model = get(id);
+			
+			if(model != null){
+				PocRpcParamenter pocRpcParamenter1 = new PocRpcParamenter();
+				pocRpcParamenter1.setParaName("pocRpcParamenter1");
+				pocRpcParamenter1.setParaType("String");
+				pocRpcParamenter1.setParaValue("Notice");
+				pocRpcParamenter1.setParaSort(1);
+				pocRpcParamenters.add(pocRpcParamenter1);
+				
+				PocRpcParamenter pocRpcParamenter2 = new PocRpcParamenter();
+				pocRpcParamenter2.setParaName("pocRpcParamenter2");
+				pocRpcParamenter2.setParaType("String");
+				pocRpcParamenter2.setParaValue(model.getTargetUris());
+				pocRpcParamenter2.setParaSort(2);
+				pocRpcParamenters.add(pocRpcParamenter2);
+				
+				PocRpcParamenter pocRpcParamenter3 = new PocRpcParamenter();
+				pocRpcParamenter3.setParaName("pocRpcParamenter3");
+				pocRpcParamenter3.setParaType("String");
+				pocRpcParamenter3.setParaValue(model.getId());
+				pocRpcParamenter3.setParaSort(3);
+				pocRpcParamenters.add(pocRpcParamenter3);
+				
+				String processUrlPart1 = model.getProcessUrlPart1();
+				String jsonParas = "";
+				if(processUrlPart1.equals("org.openmobilealliance.poc-groups")){
+					
+					JSONArray jsonArray = new JSONArray();
+					
+					String urlPara = UrlUtil.getUrlPara(model.getProcessUrlPart2());
+					String[] array = urlPara.split("/");
+					String groupUri = UrlUtil.getUrlParaValue(array[1]);
+					String ownerUri = model.getOwnerUri();
+					
+					PocRpcParamenter pocRpcParamenter4 = new PocRpcParamenter();
+					pocRpcParamenter4.setParaName("pocRpcParamenter4");
+					pocRpcParamenter4.setParaType("String");
+					pocRpcParamenter4.setParaValue(jsonParas);
+					pocRpcParamenter4.setParaSort(4);
+					pocRpcParamenters.add(pocRpcParamenter4);
+				}
+				
+				pocSyncDataService.SyncData("runXcapCmd", pocRpcParamenters, pocCompany);
+			}
+		}
+	}
+	
+	public String processPocMessageCenterJson(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String id = "";
+		if(jsonObject.containsKey("id")){
+			id = jsonObject.opt("id").toString();
+		}
+		
+		String processResult = "";
+		if(jsonObject.containsKey("processResult")){
+			id = jsonObject.opt("processResult").toString();
+		}
+		
+		if(id != null && !id.equals("") && processResult != null && !processResult.equals("")){
+			PocMessageCenter model = get(id);
+			
+			if(model != null && model.getIsProcess() != null && !model.getIsProcess().equals("") && model.getIsProcess().equals("N")){
+				if(processResult.equals("Y")){
+					String processUrlPart1 = model.getProcessUrlPart1();
+					
+					if(processUrlPart1.equals("org.openmobilealliance.poc-groups")){
+						String url = model.getProcessHost() + ":" + model.getProcessPort() + model.getProcessAppName() +  model.getProcessUrlPart2();
+						System.out.println(url);
+						
+						String xml = model.getProcessContent();
+						System.out.println(xml);
+						
+						String contentType = model.getProcessContentType();
+						System.out.println(contentType);
+						
+						try {
+							/*SendHttpRequestUtil.sendPutXml(url, xml, contentType);*/
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+				
+				model.setIsProcess("Y");
+				model.setUpdator(model.getOwnerUri());
+				
+				update(model);
+				
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", "200");
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该消息不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+}

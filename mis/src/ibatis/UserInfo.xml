@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="UserInfo">
+	<typeAlias alias="userInfo" type="com.sg.entity.UserInfo" />
+	
+	<resultMap id="UserInfoResult" class="userInfo">
+		<result property="id" column="Id" />
+		<result property="userInRoleId" column="UserInRoleId" />
+		<result property="userName" column="UserName" />
+		<result property="password" column="Password" />
+		<result property="description" column="Description" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="role" column="Role" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="userName">
+			<![CDATA[A.UserName=#userName#]]>
+			<!-- <![CDATA[A.UserName like CONCAT('%', #userName#, '%')]]> -->
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="userInfo">
+		INSERT INTO UserInfo (Id, UserName, Password, Description, Status, CreateTime, Creator) 
+		VALUES (#id#, #userName#, #password#, #description#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="userInfo">
+		UPDATE UserInfo 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="userName">
+				UserName=#userName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="password">
+				Password=#password#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="UserInfoResult" parameterClass="String">
+		SELECT A.*,B.* FROM UserInfo A
+		JOIN UserInRole B ON A.Id=B.UserInRoleId 
+		WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM UserInfo A
+		JOIN UserInRole B ON A.Id=B.UserInRoleId 
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="UserInfoResult">
+		SELECT A.*,B.* FROM UserInfo A
+		JOIN UserInRole B ON A.Id=B.UserInRoleId 
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="UserInfoResult">
+		SELECT A.*,B.* FROM UserInfo A
+		JOIN UserInRole B ON A.Id=B.UserInRoleId 
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM UserInfo WHERE Id=#id#
+	</delete>
+</sqlMap>

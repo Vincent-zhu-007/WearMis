@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MenuConfig">
+	<typeAlias alias="menuConfig" type="com.sg.entity.MenuConfig" />
+	
+	<resultMap id="MenuConfigResult" class="menuConfig">
+		<result property="id" column="Id" />
+		<result property="code" column="Code" />
+		<result property="description" column="Description" />
+		<result property="url" column="Url" />
+		<result property="hasChildren" column="HasChildren" />
+		<result property="displaySort" column="DisplaySort" />
+		<result property="levelCode" column="LevelCode" />
+		<result property="parentCode" column="ParentCode" />
+		<result property="status" column="Status" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="code">
+			<![CDATA[A.Code=#code#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[A.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="parentCode">
+			<![CDATA[A.ParentCode=#parentCode#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="levelCode">
+			<![CDATA[A.LevelCode=#levelCode#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="menuConfig">
+		INSERT INTO MenuConfig (Id, Code, Description, Url, HasChildren, DisplaySort, LevelCode, ParentCode, Status) 
+		VALUES (#id#, #code#, #description#, #url#, #hasChildren#, #displaySort#, #levelCode#, #parentCode#, #status#)
+	</insert>
+	
+	<update id="update" parameterClass="menuConfig">
+		UPDATE MenuConfig 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="code">
+				Code=#code#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="url">
+				Url=#url#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="hasChildren">
+				HasChildren=#hasChildren#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="displaySort">
+				DisplaySort=#displaySort#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="levelCode">
+				LevelCode=#levelCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="parentCode">
+				ParentCode=#parentCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MenuConfigResult" parameterClass="String">
+		SELECT A.* FROM MenuConfig A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MenuConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MenuConfigResult">
+		SELECT A.* FROM MenuConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.Description ASC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MenuConfigResult">
+		SELECT A.* FROM MenuConfig A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.DisplaySort ASC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MenuConfig WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

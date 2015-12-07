@@ -1,0 +1,68 @@
+package com.sg.weixin.entity;
+
+import java.util.Date;
+
+public class WeiXinInMobile {
+	public WeiXinInMobile(){
+		
+	}
+	
+	private String id;
+	private String weiXinOwnerUri;
+	private String mobileOwnerUri;
+	private String numButton;
+	private String status;
+	private Date createTime;
+	private String creator;
+	private Date updateTime;
+	private String updator;
+	
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getWeiXinOwnerUri() {
+		return weiXinOwnerUri;
+	}
+	public void setWeiXinOwnerUri(String weiXinOwnerUri) {
+		this.weiXinOwnerUri = weiXinOwnerUri;
+	}
+	public String getMobileOwnerUri() {
+		return mobileOwnerUri;
+	}
+	public void setMobileOwnerUri(String mobileOwnerUri) {
+		this.mobileOwnerUri = mobileOwnerUri;
+	}
+	public String getStatus() {
+		return status;
+	}
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	public Date getCreateTime() {
+		return createTime;
+	}
+	public void setCreateTime(Date createTime) {
+		this.createTime = createTime;
+	}
+	public String getCreator() {
+		return creator;
+	}
+	public void setCreator(String creator) {
+		this.creator = creator;
+	}
+	public Date getUpdateTime() {
+		return updateTime;
+	}
+	public void setUpdateTime(Date updateTime) {
+		this.updateTime = updateTime;
+	}
+	public String getUpdator() {
+		return updator;
+	}
+	public void setUpdator(String updator) {
+		this.updator = updator;
+	}
+}

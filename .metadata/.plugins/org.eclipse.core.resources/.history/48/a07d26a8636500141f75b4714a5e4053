@@ -1,0 +1,366 @@
+package com.sg.poc.service;
+
+import java.io.FileOutputStream;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.springframework.stereotype.Service;
+import com.sg.poc.dao.PocContactDao;
+import com.sg.poc.entity.PocContact;
+import com.sg.poc.entity.PocContactMember;
+import com.sg.poc.entity.PocDirectory;
+import com.sg.poc.entity.PocServerConfig;
+import com.sg.poc.entity.PocUser;
+import com.sg.poc.util.UrlUtil;
+import com.sg.service.BaseEntityManager;
+
+@Service
+public class PocContactService implements BaseEntityManager<PocContact> {
+	@Resource
+	private PocContactDao pocContactDao;
+	
+	@Resource
+	private PocContactMemberService pocContactMemberService;
+	
+	@Resource
+	private PocDirectoryService pocDirectoryService;
+	
+	@Resource
+	private PocUserService pocUserService;
+
+	@Override
+	public void create(PocContact entity) {
+		// TODO Auto-generated method stub
+		pocContactDao.create(entity);
+	}
+
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		pocContactDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocContact> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return pocContactDao.find(params, pageParams);
+	}
+
+	@Override
+	public PocContact get(String id) {
+		// TODO Auto-generated method stub
+		return pocContactDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocContact> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return pocContactDao.findForUnPage(params);
+	}
+
+	@Override
+	public void update(PocContact entity) {
+		// TODO Auto-generated method stub
+		pocContactDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return pocContactDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<PocContact> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("POC好友列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("用户地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("列表名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("文件名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				PocContact model = (PocContact) list.get(i);
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getOwnerUri());
+				row.createCell((short) 1).setCellValue(model.getListName());
+				row.createCell((short) 2).setCellValue(model.getListFileName());
+				row.createCell((short) 3).setCellValue(model.getStatus());
+				cell = row.createCell((short) 4);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public String getPocContactXml(PocServerConfig pocServerConfig, String fileName){
+		String xml = "";
+		Document doc = com.sg.poc.util.XmlUtil.getXmlDoc(fileName);
+		
+		Element rootElement = doc.getRootElement();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", pocServerConfig.getUrlPart3());
+		params.put("listFileName", pocServerConfig.getUrlPart4());
+		params.put("status", "Y");
+		List<PocContact> list = findForUnPage(params);
+		
+		/*System.out.println("wangzhe 用户好友列表返回行数:" + list.size());*/
+		
+		if(list != null && list.size() > 0){
+			for (PocContact pocContact : list) {
+				/*<list name="oma_pocbuddylist">*/
+				Element listElement = DocumentHelper.createElement("list");
+				listElement.addAttribute("name", pocContact.getListName());
+				rootElement.add(listElement);
+				
+				/*<entry uri="sip:bob@ericsson.com">
+				 * <display-name>bob</display-name>
+				 * </entry>*/
+				Map<String, Object> pocContactMemberParams = new HashMap<String, Object>();
+				pocContactMemberParams.put("ownerUri", pocContact.getOwnerUri());
+				pocContactMemberParams.put("listFileName", pocContact.getListFileName());
+				
+				List<PocContactMember> pocContactMembers = pocContactMemberService.findForUnPage(pocContactMemberParams);
+				
+				if(pocContactMembers != null && pocContactMembers.size() > 0){
+					for (PocContactMember pocContactMember : pocContactMembers) {
+						Element entryElement = DocumentHelper.createElement("entry");
+						entryElement.addAttribute("uri", pocContactMember.getContactMemberUri());
+						listElement.add(entryElement);
+						
+						Element displayNameElement = DocumentHelper.createElement("display-name");
+						entryElement.add(displayNameElement);
+						
+						String docDisplayName = "";
+						
+						try {
+							docDisplayName = URLEncoder.encode(pocContactMember.getDisplayName(), "utf-8");
+						} catch (Exception e) {
+							// TODO: handle exception
+							System.out.println(e.getMessage());
+						}
+						
+						displayNameElement.setText(docDisplayName);
+					}
+				}
+			}
+		}
+		
+		xml = doc.asXML();
+		
+		return xml;
+	}
+	
+	@SuppressWarnings({ "unchecked" })
+	public String putPocContactXml(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		Element rootElement = doc.getRootElement();
+		List<Element> listElements = rootElement.elements("list");
+		
+		if(listElements != null && listElements.size() > 0){
+			Element listElement = listElements.get(0);
+			
+			String listName = listElement.attribute("name").getValue();
+			
+			PocContact pocContact = new PocContact();
+			pocContact.setId(UUID.randomUUID().toString());
+			pocContact.setOwnerUri(pocServerConfig.getUrlPart3());
+			pocContact.setListName(listName);
+			pocContact.setListFileName(pocServerConfig.getUrlPart4());
+			pocContact.setStatus("Y");
+			pocContact.setCreateTime(new Date());
+			pocContact.setCreator("PocServer");
+			
+			create(pocContact);
+			
+			PocDirectory pocDirectory = new PocDirectory();
+			pocDirectory.setId(UUID.randomUUID().toString());
+			pocDirectory.setPocCreator(pocServerConfig.getUrlPart3());
+			pocDirectory.setOwnerUri(pocServerConfig.getUrlPart3());
+			pocDirectory.setAuid(pocServerConfig.getUrlPart1());
+			pocDirectory.setAuidUri(pocServerConfig.getUrl());
+			String auidEtag = UUID.randomUUID().toString();
+			pocDirectory.setAuidEtag(auidEtag);
+			pocDirectory.setDirectoryFileName(pocServerConfig.getUrlPart4());
+			pocDirectory.setStatus("Y");
+			pocDirectory.setCreateTime(new Date());
+			pocDirectory.setCreator("PocServer");
+			
+			pocDirectoryService.create(pocDirectory);
+			
+		}else {
+			String[] array = urlPara.split("/");
+			
+			String listName = UrlUtil.getUrlParaValue(array[1]);
+			
+			String docContactMemberUri = rootElement.attribute("uri").getValue();
+			
+			Element displayNameElement = (Element)rootElement.selectSingleNode("display-name");
+			
+			String docDisplayName = "";
+			
+			try {
+				docDisplayName = URLDecoder.decode(displayNameElement.getText(), "utf-8");
+			} catch (Exception e) {
+				// TODO: handle exception
+				System.out.println(e.getMessage());
+			}
+			
+			Map<String, Object> contactParams = new HashMap<String, Object>();
+			contactParams.put("ownerUri", pocServerConfig.getUrlPart3());
+			contactParams.put("listFileName", pocServerConfig.getUrlPart4());
+			contactParams.put("listName", listName);
+			contactParams.put("status", "Y");
+			List<PocContact> pocContacts = findForUnPage(contactParams);
+			
+			if(pocContacts != null && pocContacts.size() > 0){
+				PocContact pocContact = pocContacts.get(0);
+				
+				Map<String, Object> contactMemberParams = new HashMap<String, Object>();
+				contactMemberParams.put("ownerUri", pocContact.getOwnerUri());
+				contactMemberParams.put("listFileName", pocContact.getListFileName());
+				contactMemberParams.put("contactMemberUri", docContactMemberUri);
+				List<PocContactMember> pocContactMembers = pocContactMemberService.findForUnPage(contactMemberParams);
+				
+				if(pocContactMembers != null && pocContactMembers.size() > 0){
+					PocContactMember model = pocContactMembers.get(0);
+					model.setDisplayName(docDisplayName);
+					
+					pocContactMemberService.update(model);
+					
+					responseStatus = "200";
+				}else {
+					Map<String, Object> pocUserParams = new HashMap<String, Object>();
+					pocUserParams.put("ownerUri", docContactMemberUri);
+					List<PocUser> pocUsers = pocUserService.findForUnPage(pocUserParams);
+					
+					if(pocUsers != null && pocUsers.size() > 0){
+						PocContactMember model = new PocContactMember();
+						model.setId(UUID.randomUUID().toString());
+						model.setOwnerUri(pocContact.getOwnerUri());
+						model.setContactMemberUri(docContactMemberUri);
+						model.setDisplayName(docDisplayName);
+						model.setListFileName(pocContact.getListFileName());
+						
+						pocContactMemberService.create(model);
+						
+						responseStatus = "200";
+					}else {
+						responseStatus = "联系人" + docContactMemberUri + "不是POC注册用户";
+					}
+				}
+			}else {
+				responseStatus = "联系人列表不存在";
+			}
+		}
+		
+		return responseStatus;
+	}
+	
+	public String deletePocContactXml(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String[] array = urlPara.split("/");
+		
+		String listName = UrlUtil.getUrlParaValue(array[1]);
+		String contactMemberUri = UrlUtil.getUrlParaValue(array[2]);
+		
+		Map<String, Object> contactParams = new HashMap<String, Object>();
+		contactParams.put("ownerUri", pocServerConfig.getUrlPart3());
+		contactParams.put("listFileName", pocServerConfig.getUrlPart4());
+		contactParams.put("listName", listName);
+		contactParams.put("status", "Y");
+		List<PocContact> pocContacts = findForUnPage(contactParams);
+		
+		if(pocContacts != null && pocContacts.size() > 0){
+			PocContact pocContact = pocContacts.get(0);
+			
+			Map<String, Object> contactMemberParams = new HashMap<String, Object>();
+			contactMemberParams.put("ownerUri", pocContact.getOwnerUri());
+			contactMemberParams.put("listFileName", pocContact.getListFileName());
+			contactMemberParams.put("contactMemberUri", contactMemberUri);
+			List<PocContactMember> pocContactMembers = pocContactMemberService.findForUnPage(contactMemberParams);
+			
+			if(pocContactMembers != null && pocContactMembers.size() > 0){
+				PocContactMember pocContactMember = pocContactMembers.get(0);
+				pocContactMemberService.delete(pocContactMember.getId());
+				
+				responseStatus = "200";
+			}else {
+				
+			}
+		}else {
+			responseStatus = "好友列表不存在";
+		}
+		
+		return responseStatus;
+	}
+}

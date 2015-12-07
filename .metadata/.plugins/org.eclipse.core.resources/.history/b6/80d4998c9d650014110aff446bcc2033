@@ -1,0 +1,346 @@
+package com.sg.poc.service;
+
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.sg.poc.dao.PocUserDao;
+import com.sg.poc.dao.PocUserExtensionDao;
+import com.sg.poc.entity.PocServerConfig;
+import com.sg.poc.entity.PocUser;
+import com.sg.poc.util.UrlUtil;
+import com.sg.poc.util.XmlUtil;
+import com.sg.service.BaseEntityManager;
+import com.sg.util.MD5;
+import com.sg.util.MapUtil;
+
+@Service
+public class PocUserService implements BaseEntityManager<PocUser> {
+	@Resource
+	private PocUserDao pocUserDao;
+	
+	@Resource
+	private PocUserExtensionDao pocUserExtensionDao;
+	
+	/*@Resource
+	private PocSyncDataService pocSyncDataService;*/
+	
+	@Transactional
+	@Override
+	public void create(PocUser entity) {
+		// TODO Auto-generated method stub
+		pocUserExtensionDao.create(entity);
+		pocUserDao.create(entity);
+	}
+	
+	@Transactional
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		pocUserExtensionDao.delete(id);
+		pocUserDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocUser> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return pocUserDao.find(params, pageParams);
+	}
+
+	@Override
+	public PocUser get(String id) {
+		// TODO Auto-generated method stub
+		return pocUserDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocUser> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return pocUserDao.findForUnPage(params);
+	}
+	
+	@Transactional
+	@Override
+	public void update(PocUser entity) {
+		// TODO Auto-generated method stub
+		
+		boolean trueNameIsEmpty = false;
+		boolean mobilePhoneIsEmpty = false;
+		boolean genderIsEmpty = false;
+		boolean mailIsEmpty = false;
+		boolean birthdayIsEmpty = false;
+		boolean headPortraitIsEmpty = false;
+		boolean isOpenExtensionIsEmpty = false;
+		
+		if(entity.getTrueName() != null && !entity.getTrueName().equals("")){
+			trueNameIsEmpty = true;
+		}
+		
+		if(entity.getMobilePhone() != null && !entity.getMobilePhone().equals("")){
+			mobilePhoneIsEmpty = true;
+		}
+		
+		if(entity.getGender() != null && !entity.getGender().equals("")){
+			genderIsEmpty = true;
+		}
+		
+		if(entity.getMail() != null && !entity.getMail().equals("")){
+			mailIsEmpty = true;
+		}
+		
+		if(entity.getBirthday() != null && !entity.getBirthday().equals("")){
+			birthdayIsEmpty = true;
+		}
+		
+		if(entity.getHeadPortrait() != null && !entity.getHeadPortrait().equals("")){
+			headPortraitIsEmpty = true;
+		}
+		
+		if(entity.getIsOpenExtension() != null && !entity.getIsOpenExtension().equals("")){
+			isOpenExtensionIsEmpty = true;
+		}
+		
+		if(trueNameIsEmpty || mobilePhoneIsEmpty || genderIsEmpty || mailIsEmpty || birthdayIsEmpty || headPortraitIsEmpty || isOpenExtensionIsEmpty){
+			pocUserExtensionDao.update(entity);
+		}
+		
+		pocUserDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return pocUserDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<PocUser> findUnJoin(Map params){
+		return pocUserDao.findUnJoin(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<PocUser> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("POC用户列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("用户地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("用户名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("密码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("显示名称");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				PocUser model = (PocUser) list.get(i);
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getOwnerUri());
+				row.createCell((short) 1).setCellValue(model.getUserName());
+				row.createCell((short) 2).setCellValue(model.getPassword());
+				row.createCell((short) 3).setCellValue(model.getDisplayName());
+				row.createCell((short) 4).setCellValue(model.getStatus());
+				cell = row.createCell((short) 5);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public Map<String, Object> getPocUserMap(String targetOwnerUri){
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		Map<String, Object> targetPocUserParams = new HashMap<String, Object>();
+		targetPocUserParams.put("ownerUri", targetOwnerUri);
+		targetPocUserParams.put("status", "Y");
+		List<PocUser> targetPocUsers = findForUnPage(targetPocUserParams);
+		
+		if(targetPocUsers != null && targetPocUsers.size() > 0){
+			PocUser targetPocUser = targetPocUsers.get(0);
+			
+			String orgStructure = targetPocUser.getOrgStructure();
+			
+			if(orgStructure != null && !orgStructure.equals("")){
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("orgStructure", orgStructure);
+				params.put("status", "Y");
+				List<PocUser> list = findForUnPage(params);
+				
+				for (PocUser pocUser : list) {
+					if(pocUser.getOwnerUri().equals(targetOwnerUri)){
+						continue;
+					}
+					
+					map.put(pocUser.getOwnerUri(), pocUser.getDisplayName());
+				}
+				
+				map = MapUtil.mapSortByKey(map);
+			}
+		}
+		
+		return map;
+	}
+	
+	public String changePocUserPassword(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String ownerUri = pocServerConfig.getUrlPart3();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", ownerUri);
+		List<PocUser> pocUsers = findForUnPage(params);
+		
+		if(pocUsers != null && pocUsers.size() > 0){
+			PocUser pocUser = pocUsers.get(0);
+			
+			String urlPasswordPart = urlPara.split("/")[0];
+			String password = UrlUtil.getUrlParaValue(urlPasswordPart);
+			
+			String md5Password = MD5.GetMD5Code(password);
+			
+			pocUser.setPassword(md5Password);
+			
+			update(pocUser);
+			
+			responseStatus = "200";
+		}
+		
+		return responseStatus;
+	}
+	
+	public String createSafeCode(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String key = "";
+		
+		String userName = pocServerConfig.getUrlPart3();
+		String realm = pocServerConfig.getUrlPart4();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("userName", userName);
+		List<PocUser> pocUsers = findForUnPage(params);
+		
+		if(pocUsers != null && pocUsers.size() > 0){
+			PocUser pocUser = pocUsers.get(0);
+			
+			String md5Password = pocUser.getPassword();
+			
+			key = userName + ":" + realm + ":" + md5Password;
+			
+			key = MD5.GetMD5Code(key);
+			
+			String responseXmlFile = pocServerConfig.getResponseXmlFile();
+			
+			Document safeCodeDoc = XmlUtil.getXmlDoc(responseXmlFile);
+			
+			Element safeCodeelement = (Element)safeCodeDoc.selectSingleNode("safecode");
+			safeCodeelement.attribute("message").setValue("200");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue(key);
+			
+			responseStatus = safeCodeDoc.asXML();
+		}
+		
+		return responseStatus;
+	}
+	
+	public String security(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String key = "";
+		
+		String userName = pocServerConfig.getUrlPart3();
+		String realm = pocServerConfig.getUrlPart4();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("userName", userName);		
+		List<PocUser> pocUsers = findUnJoin(params);
+		
+		if(pocUsers != null && pocUsers.size() > 0){
+			PocUser pocUser = pocUsers.get(0);
+			
+			String md5Password = pocUser.getPassword();
+			
+			key = userName + ":" + realm + ":" + md5Password;
+			
+			key = MD5.GetMD5Code(key);
+			
+			String responseXmlFile = pocServerConfig.getResponseXmlFile();
+			
+			Document safeCodeDoc = XmlUtil.getXmlDoc(responseXmlFile);
+			
+			Element safeCodeelement = (Element)safeCodeDoc.selectSingleNode("safecode");
+			safeCodeelement.attribute("message").setValue("200");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue(key);
+			
+			responseStatus = safeCodeDoc.asXML();
+		}
+		
+		return responseStatus;
+	}
+}

@@ -1,0 +1,368 @@
+package com.sg.poc.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import net.sf.json.JSONObject;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import com.sg.controller.AbstractController;
+import com.sg.controller.JsonResult;
+import com.sg.poc.entity.PocUserThan;
+import com.sg.poc.service.PocUserThanService;
+import com.sg.util.DataGridModel;
+import com.sg.util.FileUtil;
+
+@Controller
+@RequestMapping("/pocUserThan.do")
+public class PocUserThanController extends AbstractController {
+	private final Logger log = Logger.getLogger(PocUserThan.class);
+
+	@Autowired
+	private PocUserThanService pocUserThanService;
+
+	/**
+	 * 菜单栏页面展示
+	 * 
+	 * @return 页面路径
+	 */
+	@RequestMapping
+	public String management() {
+		return "poc/pocuserthan_list";
+	}
+
+	/**
+	 * pocUserThan.do?method=list 提交时，list()被调用
+	 */
+	@RequestMapping(params = "method=list")
+	@ResponseBody
+	public JsonResult list(HttpServletRequest request, PocUserThan entity,
+			DataGridModel dm) {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("meiNo", entity.getMeiNo());
+		params.put("userName", entity.getUserName());
+
+		List<PocUserThan> list = pocUserThanService.findForPage(params,
+				dm.getStartRow(), dm.getRows());
+
+		int totalCount = pocUserThanService.getTotalCount(params).intValue();
+
+		JsonResult jsonResult = new JsonResult();
+		jsonResult.setTotal(totalCount);
+		jsonResult.setRows(list);
+		return jsonResult;
+	}
+
+	/**
+	 * pocUserThan.do?method=add 请求以 HTTP POST 方式提交时，create()被调用
+	 * 
+	 * @param request
+	 * @param entity
+	 * @return
+	 */
+	@RequestMapping(params = "method=add")
+	@ResponseBody
+	public JsonResult create(HttpServletRequest request, PocUserThan entity) {
+		JsonResult result = new JsonResult();
+
+		try {
+			entity.setId(UUID.randomUUID().toString());
+			
+			pocUserThanService.create(entity);
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("create PocUserThan exception reason：" + e.getMessage());
+		}
+		return result;
+	}
+
+	@RequestMapping(params = "method=update")
+	@ResponseBody
+	public JsonResult update(HttpServletRequest request, PocUserThan entity) {
+		JsonResult result = new JsonResult();
+
+		try {
+			PocUserThan model = pocUserThanService.get(entity.getId());
+			
+			model.setMeiNo(entity.getMeiNo());
+			model.setUserName(entity.getUserName());
+			model.setBatchNo(entity.getBatchNo());
+			
+			pocUserThanService.update(model);
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("update PocUserThan exception reason：" + e.getMessage());
+		}
+		return result;
+	}
+
+	@RequestMapping(params = "method=get")
+	@ResponseBody
+	public JSONObject get(HttpServletRequest request, String id) {
+		PocUserThan entity = pocUserThanService.get(id);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("id", entity.getId());
+		map.put("meiNo", entity.getMeiNo());
+		map.put("userName", entity.getUserName() == null ? "" : entity.getUserName());
+		map.put("batchNo", entity.getBatchNo() == null ? "" : entity.getBatchNo());
+		
+		JSONObject jsonObject = JSONObject.fromObject(map);
+		return jsonObject;
+	}
+	
+	@RequestMapping(params = "method=getpocuserthancache")
+	@ResponseBody
+	public List<PocUserThan> getPocUserThanCache(){
+		return pocUserThanService.getPocUserThanCache();
+	}
+	
+	@RequestMapping(params = "method=clearpocuserthancache")
+	@ResponseBody
+	public JsonResult clearPocUserThanCache(){
+		JsonResult result = new JsonResult();
+		
+		try {
+			pocUserThanService.clearPocUserThanCache();
+			pocUserThanService.getPocUserThanCache();
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.print(e.getMessage());
+			result.setMessage(null);
+		}
+		
+		return result;
+	}
+	
+	@RequestMapping(params = "method=delete")
+	@ResponseBody
+	public JsonResult delete(HttpServletRequest request, String ids) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String[] array = ids.split(",");
+			
+			for (String id : array) {
+				pocUserThanService.delete(id);
+			}
+			
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("delete PocUserThan exception reason:" + e.getMessage());
+		}
+		return result;
+	}
+	
+	@SuppressWarnings("deprecation")
+	@RequestMapping(params = "method=getfilepath")
+	public void getExpFilePath(HttpServletRequest request, HttpServletResponse response) {
+		String filePath = "";
+		
+		String meiNo = request.getParameter("meiNo");
+		String userName = request.getParameter("userName");
+		String batchNo = request.getParameter("batchNo");
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("meiNo", meiNo);
+		params.put("userName", userName);
+		params.put("batchNo", batchNo);
+		
+		List<PocUserThan> list = pocUserThanService.findForUnPage(params);
+		
+		if(list.size() > 0) {
+			try {
+				String path = request.getRealPath("/") + "userfile\\xls";
+				
+				filePath = pocUserThanService.ExpExcel(list, path);
+				
+			} catch (Exception e) {
+				// TODO: handle exception
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		try {
+			filePath = response.encodeURL(filePath);
+			response.getWriter().write(filePath);
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.print(e.getMessage());
+		}
+	}
+	
+	@RequestMapping(params = "method=isExistMeiNo")
+	@ResponseBody
+	public boolean isExistMeiNo(HttpServletRequest request, String meiNo) {
+		boolean result = true;
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("meiNo", meiNo);
+		
+		List<PocUserThan> list = pocUserThanService.findForUnPage(params);
+		
+		if(list.size() > 0) {
+			result = false;
+		}
+		
+		return result;
+	}
+	
+	@SuppressWarnings("deprecation")
+	@RequestMapping(params = "method=initlistboxmeiremove")
+	@ResponseBody
+	public String initListboxMeiRemove(HttpServletRequest request, String fileName) {
+		
+		String result = "";
+		
+		if(fileName == null || fileName.equals("")){
+			result = "0&请选择文件";
+			return result;
+		}
+		
+		int i = fileName.lastIndexOf('.');
+		if(i != -1){
+			String suffix = fileName.substring(i + 1, fileName.length());
+			
+			if(!suffix.equals("txt")){
+				result = "0&上传文件必须为txt文件";
+				return result;
+			}
+		}
+		
+		String basePath = request.getRealPath("/");
+		String filePath = fileName.replace("/mis/", "").replace("/", "\\");
+		String fullPath = basePath + filePath;
+		
+		String strArray = FileUtil.readTxtFile(fullPath);
+		
+		if(strArray != null && !strArray.equals("")){
+			int index = strArray.lastIndexOf(',');
+			if(index != -1){
+				strArray = strArray.substring(0, index);
+			}
+			
+			String[] array = strArray.split(",");
+			
+			String sqlIn = "";
+			for (String meiNo : array) {
+				String meiNoTrim = meiNo.trim();
+				
+				sqlIn += "'"+meiNoTrim+"',";
+			}
+			
+			int indexTemp = sqlIn.lastIndexOf(',');
+			if(indexTemp != -1){
+				sqlIn = sqlIn.substring(0, indexTemp);
+			}
+			
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("meiNo", sqlIn);
+			
+			List<PocUserThan> pocUserThans = pocUserThanService.findUnPageIn(params);
+			
+			result = "1&";
+			for (String meiNo : array) {
+				
+				String meiNoTrim = meiNo.trim();
+				
+				String message = "可以导入";
+				if(meiNoTrim.length() != 15){
+					message = "串号位数错误";
+				}
+				
+				if(pocUserThans != null && pocUserThans.size() > 0){
+					for (PocUserThan pocUserThan : pocUserThans) {
+						if(pocUserThan.getMeiNo().equals(meiNoTrim)){
+							message = "串号已经占用";
+							break;
+						}
+					}
+				}
+				
+				result += "<option value='"+meiNoTrim+"'>"+meiNoTrim+" | "+message+"</option>";
+			}
+		}
+		
+		return result;
+	}
+	
+	@RequestMapping(params = "method=addpocuserthans")
+	@ResponseBody
+	public JsonResult addPocUserThans(HttpServletRequest request) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String meiNos = request.getParameter("meiNos");
+			String batchNo = request.getParameter("batchNo");
+			
+			String[] array = meiNos.split(",");
+			
+			String sqlIn = "";
+			for (String meiNo : array) {
+				String meiNoTrim = meiNo.trim();
+				
+				sqlIn += "'"+meiNoTrim+"',";
+			}
+			
+			int indexTemp = sqlIn.lastIndexOf(',');
+			if(indexTemp != -1){
+				sqlIn = sqlIn.substring(0, indexTemp);
+			}
+			
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("meiNo", sqlIn);
+			
+			List<PocUserThan> pocUserThans = pocUserThanService.findUnPageIn(params);
+			
+			for (String meiNo : array) {
+				
+				String meiNoTrim = meiNo.trim();
+				
+				if(meiNoTrim.length() != 15){
+					continue;
+				}
+				
+				if(pocUserThans != null && pocUserThans.size() > 0){
+					boolean isContainMeiNo = false;
+					
+					for (PocUserThan pocUserThan : pocUserThans) {
+						if(pocUserThan.getMeiNo().equals(meiNoTrim)){
+							isContainMeiNo = true;
+							break;
+						}
+					}
+					
+					if(isContainMeiNo){
+						continue;
+					}
+				}
+				
+				PocUserThan entity = new PocUserThan();
+				
+				String id = UUID.randomUUID().toString();
+				entity.setId(id);
+				entity.setMeiNo(meiNoTrim);
+				entity.setUserName("");
+				entity.setBatchNo(batchNo);
+				
+				pocUserThanService.create(entity);
+			}
+			
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("import PocUserThan by meino exception reason：" + e.getMessage());
+		}
+		return result;
+	}
+}

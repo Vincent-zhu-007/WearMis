@@ -1,0 +1,113 @@
+@CHARSET "UTF-8";
+body{
+	font:12px/18px "微软雅黑","宋体","黑体",Arial;
+}
+
+/* searchForm */
+#searchForm{
+	padding: 0px;
+	margin: 0px;
+	/* height: 40px; */
+}
+
+#searchForm ul{
+	float: left;
+	list-style: none;
+	padding: 0px;
+	margin: 0px;
+	*margin: 0px;
+	height: 40px;
+	padding-left: 10px;
+}
+
+#searchForm ul li{
+	display: inline-block;
+	*display:inline;
+	zoom:1;
+	height: 26px;
+	line-height: 26px;
+	padding-top: 7px;
+	padding-left: 5px;
+	padding-bottom: 7px;
+}
+
+#searchForm ul li input{
+	border: 1px solid #95b8e7;
+	height: 24px;
+	line-height: 24px;
+}
+
+/* tableForm */
+#tableForm{
+	padding: 0px;
+	margin: 0px;
+}
+
+#tableForm ul{
+	/* width: 500px; */
+	padding: 0px;
+	margin: 0px;
+	list-style: none;		
+}
+
+#tableForm ul li{
+	float: left;
+	padding-bottom: 5px;
+}
+
+#tableForm ul li .textlable{
+	float: left;
+	text-align: right;
+	width: 70px;
+}
+
+#tableForm ul li .inputlable{
+	float: left;
+}
+
+#tableForm ul li .inputlable input{
+	height: 22px;
+	border: 1px solid #95b8e7;
+}
+
+/* role tableForm */
+#tableForm .custtop{
+	float: left;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+#tableForm .custtop ul{
+	float: left;
+	width: 500px;
+	padding: 0px;
+	margin: 0px;
+	list-style: none;		
+}
+
+#tableForm .custbottom{
+	float: left;
+	width: 500px;
+	padding-top: 10px;
+	border-top: 1px dashed #D0D0D0;
+}
+
+#tableForm .custbottom .custbottom_title{
+	float: left;
+	width: 500px;
+	padding-bottom: 10px;
+}
+
+#tableForm .custbottom ul{
+	float: left;
+	width: 200px;
+}
+
+#tableForm .custbottom ul li{
+	display: block;
+	float: left;
+}
+
+.combo{
+	border: none;
+}

@@ -1,0 +1,14 @@
+#Tue Dec 01 18:33:35 CST 2015
+tomcat7Server.mis.deploymentPath=D\:\\Program Files\\Apache Software Foundation\\Tomcat 7.0\\webapps\\mis
+tomcat7Server.mis.shouldBackup=false
+tomcat7Server.mis.isDeployed=true
+tomcat7Server.mis.noFileCopy=false
+tomcat7Server.mis.shouldOverwrite=false
+tomcat7Server.mis.contextRoot=/mis
+tomcat7Server.mis.IEARProjectName=
+tomcat7Server.mis.type=WebDeployment
+eclipse.preferences.version=1
+tomcat7Server.mis.isUptoDate=true
+tomcat7Server.mis.isExploded=true
+tomcat7Server.mis.deployIsOverProject=false
+tomcat7Server.mis.altContextRoot=/mis

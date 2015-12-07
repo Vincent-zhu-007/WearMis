@@ -1,0 +1,871 @@
+package com.sg.poc.service;
+
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.sg.poc.dao.PocUserDao;
+import com.sg.poc.dao.PocUserExtensionDao;
+import com.sg.poc.entity.PocCompany;
+import com.sg.poc.entity.PocServerConfig;
+import com.sg.poc.entity.PocUser;
+import com.sg.poc.entity.PocUserMeiNo;
+import com.sg.poc.util.DigestAuthentication;
+import com.sg.poc.util.UrlUtil;
+import com.sg.poc.util.XmlUtil;
+import com.sg.service.BaseEntityManager;
+import com.sg.service.CodeService;
+import com.sg.util.MD5;
+import com.sg.util.MapUtil;
+
+@Service
+public class PocUserService implements BaseEntityManager<PocUser> {
+	@Resource
+	private PocUserDao pocUserDao;
+	
+	@Resource
+	private PocUserExtensionDao pocUserExtensionDao;
+	
+	@Autowired
+	private CodeService codeService;
+	
+	@Autowired
+	private PocUserMeiNoService pocUserMeiNoService;
+	
+	@Autowired
+	private PocCompanyService pocCompanyService;
+	
+	@Transactional
+	@Override
+	public void create(PocUser entity) {
+		// TODO Auto-generated method stub
+		pocUserExtensionDao.create(entity);
+		pocUserDao.create(entity);
+	}
+	
+	@Transactional
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		pocUserExtensionDao.delete(id);
+		pocUserDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocUser> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return pocUserDao.find(params, pageParams);
+	}
+
+	@Override
+	public PocUser get(String id) {
+		// TODO Auto-generated method stub
+		return pocUserDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<PocUser> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return pocUserDao.findForUnPage(params);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<PocUser> findForUnPageByCheckDisplayName(Map params) {
+		// TODO Auto-generated method stub
+		return pocUserDao.findUnPageByCheckDisplayName(params);
+	}
+	
+	@Transactional
+	@Override
+	public void update(PocUser entity) {
+		// TODO Auto-generated method stub
+		
+		pocUserExtensionDao.update(entity);
+		pocUserDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return pocUserDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<PocUser> findUnJoin(Map params){
+		return pocUserDao.findUnJoin(params);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<PocUser> findUnPageIn(Map params){
+		return pocUserDao.findUnPageIn(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<PocUser> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			Map<String, Object> genderMap = codeService.getCodeCacheMapByCategory("GENDER");
+			Map<String, Object> statusMap = codeService.getCodeCacheMapByCategory("STATUS");
+			
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("POC用户列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("用户地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("用户名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("显示名称");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("真实姓名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("手机号码");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("性别");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 6);
+			cell.setCellValue("邮箱地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 7);
+			cell.setCellValue("生日");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 8);
+			cell.setCellValue("头像路径 ");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 9);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 10);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				PocUser model = (PocUser) list.get(i);
+				
+				String gender = "";
+				if(model.getGender() != null && !model.getGender().equals("")){
+					gender = genderMap.get(model.getGender()).toString();
+				}
+				
+				String status = statusMap.get(model.getStatus()).toString();
+				
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getOwnerUri());
+				row.createCell((short) 1).setCellValue(model.getUserName());
+				row.createCell((short) 2).setCellValue(model.getDisplayName());
+				row.createCell((short) 3).setCellValue(model.getTrueName());
+				row.createCell((short) 4).setCellValue(model.getMobilePhone());
+				row.createCell((short) 5).setCellValue(gender);
+				row.createCell((short) 6).setCellValue(model.getMail());
+				row.createCell((short) 7).setCellValue(model.getBirthday());
+				row.createCell((short) 8).setCellValue(model.getHeadPortrait());
+				row.createCell((short) 9).setCellValue(status);
+				cell = row.createCell((short) 10);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public Map<String, Object> getPocUserMap(String targetOwnerUri){
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		Map<String, Object> targetPocUserParams = new HashMap<String, Object>();
+		targetPocUserParams.put("ownerUri", targetOwnerUri);
+		targetPocUserParams.put("status", "Y");
+		List<PocUser> targetPocUsers = findForUnPage(targetPocUserParams);
+		
+		if(targetPocUsers != null && targetPocUsers.size() > 0){
+			PocUser targetPocUser = targetPocUsers.get(0);
+			
+			String orgStructure = targetPocUser.getOrgStructure();
+			
+			if(orgStructure != null && !orgStructure.equals("")){
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("orgStructure", orgStructure);
+				params.put("status", "Y");
+				List<PocUser> list = findForUnPage(params);
+				
+				for (PocUser pocUser : list) {
+					if(pocUser.getOwnerUri().equals(targetOwnerUri)){
+						continue;
+					}
+					
+					map.put(pocUser.getOwnerUri(), pocUser.getDisplayName());
+				}
+				
+				map = MapUtil.mapSortByKey(map);
+			}
+		}
+		
+		return map;
+	}
+	
+	public List<PocUser> getPocUserByCompanyCode(String companyCode){
+		List<PocUser> list = new ArrayList<PocUser>();
+		
+		if(companyCode != null && !companyCode.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", companyCode);
+			params.put("status", "Y");
+			list = findForUnPage(params);
+		}
+		
+		return list;
+	}
+	
+	public String changePocUserPassword(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String ownerUri = pocServerConfig.getUrlPart3();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", ownerUri);
+		List<PocUser> pocUsers = findForUnPage(params);
+		
+		if(pocUsers != null && pocUsers.size() > 0){
+			PocUser pocUser = pocUsers.get(0);
+			
+			String urlPasswordPart = urlPara.split("/")[0];
+			String password = UrlUtil.getUrlParaValue(urlPasswordPart);
+			
+			String md5Password = MD5.GetMD5Code(password);
+			
+			pocUser.setPassword(md5Password);
+			
+			update(pocUser);
+			
+			responseStatus = "200";
+		}
+		
+		return responseStatus;
+	}
+	
+	public String createSafeCode(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String key = "";
+		
+		String userName = pocServerConfig.getUrlPart3();
+		String realm = pocServerConfig.getUrlPart4();
+		
+		String responseXmlFile = pocServerConfig.getResponseXmlFile();
+		Document safeCodeDoc = XmlUtil.getXmlDoc(responseXmlFile);
+		Element safeCodeelement = (Element)safeCodeDoc.selectSingleNode("safecode");
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("userName", userName);
+		/*params.put("companyCode", pocServerConfig.getCompanyCode());*/
+		List<PocUser> pocUsers = findForUnPage(params);
+		
+		if(pocUsers != null && pocUsers.size() > 0){
+			PocUser pocUser = pocUsers.get(0);
+			
+			String md5Password = pocUser.getPassword();
+			
+			key = userName + ":" + realm + ":" + md5Password;
+			
+			key = MD5.GetMD5Code(key);
+			
+			safeCodeelement.attribute("message").setValue("200");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue(key);
+			
+			responseStatus = safeCodeDoc.asXML();
+		}else {
+			safeCodeelement.attribute("message").setValue("100");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue("user not found");
+			
+			responseStatus = safeCodeDoc.asXML();
+		}
+		
+		return responseStatus;
+	}
+	
+	public String security(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String responseStatus = "";
+		
+		String key = "";
+		
+		String userName = pocServerConfig.getUrlPart3();
+		String realm = pocServerConfig.getUrlPart4();
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("userName", userName);
+		List<PocUser> pocUsers = findUnJoin(params);
+		
+		if(pocUsers != null && pocUsers.size() > 0){
+			PocUser pocUser = pocUsers.get(0);
+			
+			String md5Password = pocUser.getPassword();
+			
+			key = userName + ":" + realm + ":" + md5Password;
+			
+			key = MD5.GetMD5Code(key);
+			
+			String responseXmlFile = pocServerConfig.getResponseXmlFile();
+			
+			Document safeCodeDoc = XmlUtil.getXmlDoc(responseXmlFile);
+			
+			Element safeCodeelement = (Element)safeCodeDoc.selectSingleNode("safecode");
+			safeCodeelement.attribute("message").setValue("200");
+			safeCodeelement.attribute("userName").setValue(userName);
+			safeCodeelement.attribute("code").setValue(key);
+			
+			responseStatus = safeCodeDoc.asXML();
+		}
+		
+		return responseStatus;
+	}
+	
+	public String getPocUserJson(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String ownerUris = "";
+		if(jsonObject.containsKey("ownerUris")){
+			ownerUris = jsonObject.opt("ownerUris").toString();
+		}
+		
+		String isUnDisturb = "";
+		if(jsonObject.containsKey("isUnDisturb")){
+			isUnDisturb = jsonObject.opt("isUnDisturb").toString();
+		}
+		
+		String displayName = "";
+		if(jsonObject.containsKey("displayName")){
+			displayName = jsonObject.opt("displayName").toString();
+		}
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		try {
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", pocServerConfig.getCompanyCode());
+			
+			if(ownerUris != null && !ownerUris.equals("")){
+				params.put("ownerUri", ownerUris);
+			}
+			
+			if(isUnDisturb != null && !isUnDisturb.equals("")){
+				params.put("isUnDisturb", isUnDisturb);
+			}
+			
+			if(displayName != null && !displayName.equals("")){
+				params.put("displayName", displayName);
+			}
+			
+			List<PocUser> pocUsers = pocUserDao.findUnPageIn(params);
+			
+			if(pocUsers != null && pocUsers.size() > 0){
+				JSONArray jsonArray = new JSONArray();
+				
+				for (PocUser pocUser : pocUsers) {
+					JSONObject jsonObjectData = new JSONObject();
+					
+					jsonObjectData.put("ownerUri", pocUser.getOwnerUri());
+					jsonObjectData.put("displayName", pocUser.getDisplayName());
+					jsonObjectData.put("trueName", pocUser.getTrueName() == null ? "" : pocUser.getTrueName());
+					jsonObjectData.put("mobilePhone", pocUser.getMobilePhone() == null ? "" : pocUser.getMobilePhone());
+					jsonObjectData.put("gender", pocUser.getGender() == null ? "" : pocUser.getGender());
+					jsonObjectData.put("mail", pocUser.getMail() == null ? "" : pocUser.getMail());
+					jsonObjectData.put("birthday", pocUser.getBirthday() == null ? "" : pocUser.getBirthday());
+					jsonObjectData.put("headPortrait", pocUser.getHeadPortrait() == null ? "" : pocUser.getHeadPortrait());
+					jsonObjectData.put("province", pocUser.getProvince() == null ? "" : pocUser.getProvince());
+					jsonObjectData.put("city", pocUser.getCity() == null ? "" : pocUser.getCity());
+					jsonObjectData.put("sign", pocUser.getSign() == null ? "" : pocUser.getSign());
+					jsonObjectData.put("isUnDisturb", pocUser.getIsUnDisturb() == null ? "" : pocUser.getIsUnDisturb());
+					jsonObjectData.put("isGroupAuthentication", pocUser.getIsGroupAuthentication() == null ? "" : pocUser.getIsGroupAuthentication());
+					jsonObjectData.put("isContactAuthentication", pocUser.getIsContactAuthentication() == null ? "" : pocUser.getIsContactAuthentication());
+					jsonObjectData.put("defaultHeadPortraitBgColor", pocUser.getDefaultHeadPortraitBgColor() == null ? "" : pocUser.getDefaultHeadPortraitBgColor());
+					
+					jsonObjectData.put("companyCode", pocUser.getCompanyCode() == null ? "" : pocUser.getCompanyCode());
+					jsonObjectData.put("orgStructure", pocUser.getOrgStructure() == null ? "" : pocUser.getOrgStructure());
+					
+					jsonArray.add(jsonObjectData);
+				}
+				
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", jsonArray);
+				
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "没有相关的用户");
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", e.getMessage());
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String editPocUserJson(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String ownerUri = "";
+		if(jsonObject.containsKey("ownerUri")){
+			ownerUri = jsonObject.opt("ownerUri").toString();
+		}
+		
+		if(ownerUri != null && !ownerUri.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("ownerUri", ownerUri);
+			
+			List<PocUser> pocUsers = findForUnPage(params);
+			
+			if(pocUsers != null && pocUsers.size() > 0){
+				PocUser pocUser = pocUsers.get(0);
+				
+				String displayName = "";
+				if(jsonObject.containsKey("displayName")){
+					displayName = jsonObject.opt("displayName").toString();
+					
+					pocUser.setDisplayName(displayName);
+				}
+				
+				if(displayName != null && !displayName.equals("")){
+					Map<String, Object> pocUserParams = new HashMap<String, Object>();
+					pocUserParams.put("ownerUri", ownerUri);
+					pocUserParams.put("displayName", displayName);
+					List<PocUser> tempPocUsers = findForUnPageByCheckDisplayName(pocUserParams);
+					if(tempPocUsers != null && tempPocUsers.size() > 0){
+						jsonObjectResult.put("result", "0");
+						jsonObjectResult.put("message", "该昵称已经存在");
+						json = jsonObjectResult.toString();
+						
+						return json;
+					}
+				}
+				
+				String trueName = "";
+				if(jsonObject.containsKey("trueName")){
+					trueName = jsonObject.opt("trueName").toString();
+					
+					pocUser.setTrueName(trueName);
+				}
+				
+				String mobilePhone = "";
+				if(jsonObject.containsKey("mobilePhone")){
+					mobilePhone = jsonObject.opt("mobilePhone").toString();
+					
+					pocUser.setMobilePhone(mobilePhone);
+				}
+				
+				String gender = "";
+				if(jsonObject.containsKey("gender")){
+					gender = jsonObject.opt("gender").toString();
+					
+					pocUser.setGender(gender);
+				}
+				
+				String mail = "";
+				if(jsonObject.containsKey("mail")){
+					mail = jsonObject.opt("mail").toString();
+					
+					pocUser.setMail(mail);
+				}
+				
+				String birthday = "";
+				if(jsonObject.containsKey("birthday")){
+					birthday = jsonObject.opt("birthday").toString();
+					
+					pocUser.setBirthday(birthday);
+				}
+				
+				String headPortrait = "";
+				if(jsonObject.containsKey("headPortrait")){
+					headPortrait = jsonObject.opt("headPortrait").toString();
+					
+					pocUser.setHeadPortrait(headPortrait);
+				}
+				
+				String province = "";
+				if(jsonObject.containsKey("province")){
+					province = jsonObject.opt("province").toString();
+					
+					pocUser.setProvince(province);
+				}
+				
+				String city = "";
+				if(jsonObject.containsKey("city")){
+					city = jsonObject.opt("city").toString();
+					
+					pocUser.setCity(city);
+				}
+				
+				String sign = "";
+				if(jsonObject.containsKey("sign")){
+					sign = jsonObject.opt("sign").toString();
+					
+					pocUser.setSign(sign);
+				}
+				
+				String isUnDisturb = "";
+				if(jsonObject.containsKey("isUnDisturb")){
+					isUnDisturb = jsonObject.opt("isUnDisturb").toString();
+					
+					pocUser.setIsUnDisturb(isUnDisturb);
+				}
+				
+				String isGroupAuthentication = "";
+				if(jsonObject.containsKey("isGroupAuthentication")){
+					isGroupAuthentication = jsonObject.opt("isGroupAuthentication").toString();
+					
+					pocUser.setIsGroupAuthentication(isGroupAuthentication);
+				}
+				
+				String isContactAuthentication = "";
+				if(jsonObject.containsKey("isContactAuthentication")){
+					isContactAuthentication = jsonObject.opt("isContactAuthentication").toString();
+					
+					pocUser.setIsContactAuthentication(isContactAuthentication);
+				}
+				
+				String defaultHeadPortraitBgColor = "";
+				if(jsonObject.containsKey("defaultHeadPortraitBgColor")){
+					defaultHeadPortraitBgColor = jsonObject.opt("defaultHeadPortraitBgColor").toString();
+					
+					pocUser.setDefaultHeadPortraitBgColor(defaultHeadPortraitBgColor);
+				}
+				
+				update(pocUser);
+				
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", "200");
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该用户不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "请提供用户地址");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String getPocUserByDisplayName(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String displayName = "";
+		if(jsonObject.containsKey("displayName")){
+			displayName = jsonObject.opt("displayName").toString();
+		}
+		
+		String ownerUri = "";
+		if(jsonObject.containsKey("ownerUri")){
+			ownerUri = jsonObject.opt("ownerUri").toString();
+		}
+		
+		if(displayName != null && !displayName.equals("") && ownerUri != null && !ownerUri.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", pocServerConfig.getCompanyCode());
+			params.put("ownerUri", ownerUri);
+			params.put("displayName", displayName);
+			
+			List<PocUser> pocUsers = findForUnPageByCheckDisplayName(params);
+			
+			if(pocUsers != null && pocUsers.size() > 0){
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该昵称已经存在");
+			}else {
+				jsonObjectResult.put("result", "1");
+				jsonObjectResult.put("data", "200");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String checkPocUserMeiNo(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String companyCode = pocServerConfig.getCompanyCode();
+		
+		PocCompany pocCompany = pocCompanyService.getPocCompanyByComapnyCode(companyCode);
+		
+		int maxMeiNoNum = 0;
+		
+		if(pocCompany.getMaxMeiNoNum() != null && !pocCompany.getMaxMeiNoNum().equals("")){
+			maxMeiNoNum = Integer.parseInt(pocCompany.getMaxMeiNoNum());
+		}
+		
+		if(pocCompany.getIsCheckMeiNo() != null && !pocCompany.getIsCheckMeiNo().equals("") && pocCompany.getIsCheckMeiNo().equals("Y") && maxMeiNoNum > 0){
+			String paraJson = urlPara;
+			JSONObject jsonObject = JSONObject.fromObject(paraJson);
+			
+			String ownerUri = "";
+			if(jsonObject.containsKey("ownerUri")){
+				ownerUri = jsonObject.opt("ownerUri").toString();
+			}
+			
+			String meiNo = "";
+			if(jsonObject.containsKey("meiNo")){
+				meiNo = jsonObject.opt("meiNo").toString();
+			}
+			
+			if(ownerUri != null && !ownerUri.equals("") && meiNo != null && !meiNo.equals("")){
+				Map<String, Object> pocUserParams = new HashMap<String, Object>();
+				pocUserParams.put("ownerUri", ownerUri);
+				
+				List<PocUser> pocUsers = findForUnPage(pocUserParams);
+				
+				if(pocUsers != null && pocUsers.size() > 0){
+					Map<String, Object> pocUserMeiNoParams = new HashMap<String, Object>();
+					pocUserMeiNoParams.put("ownerUri", ownerUri);
+					pocUserMeiNoParams.put("status", "Y");
+					List<PocUserMeiNo> pocUserMeiNos = pocUserMeiNoService.findForUnPage(pocUserMeiNoParams);
+					
+					if(pocUserMeiNos != null && pocUserMeiNos.size() > 0){
+						boolean isContainMeiNo = false;
+						int i = 0;
+						for (PocUserMeiNo pocUserMeiNo : pocUserMeiNos) {
+							
+							i++;
+							
+							if(i > maxMeiNoNum){
+								break;
+							}
+							
+							if(pocUserMeiNo.getMeiNo().equals(meiNo)){
+								isContainMeiNo = true;
+								break;
+							}
+						}
+						
+						if(!isContainMeiNo){
+							if(pocUserMeiNos.size() < maxMeiNoNum){
+								PocUserMeiNo pocUserMeiNo = new PocUserMeiNo();
+								pocUserMeiNo.setId(UUID.randomUUID().toString());
+								pocUserMeiNo.setOwnerUri(ownerUri);
+								pocUserMeiNo.setMeiNo(meiNo);
+								pocUserMeiNo.setStatus("Y");
+								pocUserMeiNo.setCreator(ownerUri);
+								
+								pocUserMeiNoService.create(pocUserMeiNo);
+							}else {
+								jsonObjectResult.put("result", "0");
+								jsonObjectResult.put("message", "201");
+								
+								json = jsonObjectResult.toString();
+								return json;
+							}
+						}
+					}else {
+						PocUserMeiNo pocUserMeiNo = new PocUserMeiNo();
+						pocUserMeiNo.setId(UUID.randomUUID().toString());
+						pocUserMeiNo.setOwnerUri(ownerUri);
+						pocUserMeiNo.setMeiNo(meiNo);
+						pocUserMeiNo.setStatus("Y");
+						pocUserMeiNo.setCreator(ownerUri);
+						
+						pocUserMeiNoService.create(pocUserMeiNo);
+					}
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", "200");
+				}else {
+					jsonObjectResult.put("result", "0");
+					jsonObjectResult.put("message", "账户不存在");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "缺少必要参数");
+			}
+			
+			jsonObjectResult.put("result", "1");
+			jsonObjectResult.put("data", "200");
+			
+			json = jsonObjectResult.toString();
+		}else {
+			jsonObjectResult.put("result", "1");
+			jsonObjectResult.put("data", "200");
+			
+			json = jsonObjectResult.toString();
+		}
+		
+		return json;
+	}
+	
+	public String getPocUserSafeCode(PocServerConfig pocServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		//String userName, String realm, String passwd, String algorithm, String nonce, String cnonce, String method, String uri, String qop, String body, String nc
+		
+		String userName = "";
+		if(jsonObject.containsKey("userName")){
+			userName = jsonObject.opt("userName").toString();
+		}
+		
+		String realm = "";
+		if(jsonObject.containsKey("realm")){
+			realm = jsonObject.opt("realm").toString();
+		}
+		
+		String algorithm = "";
+		if(jsonObject.containsKey("algorithm")){
+			algorithm = jsonObject.opt("algorithm").toString();
+		}
+		
+		String nonce = "";
+		if(jsonObject.containsKey("nonce")){
+			nonce = jsonObject.opt("nonce").toString();
+		}
+		
+		String nonce = "";
+		if(jsonObject.containsKey("nonce")){
+			nonce = jsonObject.opt("nonce").toString();
+		}
+		
+		String method = "";
+		if(jsonObject.containsKey("method")){
+			method = jsonObject.opt("method").toString();
+		}
+		
+		String uri = "";
+		if(jsonObject.containsKey("uri")){
+			uri = jsonObject.opt("uri").toString();
+		}
+		
+		String qop = "";
+		if(jsonObject.containsKey("qop")){
+			qop = jsonObject.opt("qop").toString();
+		}
+		
+		String body = "";
+		if(jsonObject.containsKey("body")){
+			body = jsonObject.opt("body").toString();
+		}
+		
+		String nc = "";
+		if(jsonObject.containsKey("nc")){
+			nc = jsonObject.opt("nc").toString();
+		}
+		
+		if(userName != null && !userName.equals("")){
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("companyCode", pocServerConfig.getCompanyCode());
+			params.put("userName", userName);
+			
+			List<PocUser> pocUsers = findForUnPage(params);
+			
+			if(pocUsers != null && pocUsers.size() > 0){
+				PocUser pocUser = pocUsers.get(0);
+				
+				String passwd = pocUser.getPassword();
+				
+				DigestAuthentication.getSafeCode(userName, realm, passwd, algorithm, nonce, cnonce, method, uri, qop, body, nc)
+				
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该昵称已经存在");
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "该用户不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+}

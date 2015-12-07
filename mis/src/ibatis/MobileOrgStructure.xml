@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileOrgStructure">
+	<typeAlias alias="mobileOrgStructure" type="com.sg.mobile.entity.MobileOrgStructure" />
+	
+	<resultMap id="MobileOrgStructureResult" class="mobileOrgStructure">
+		<result property="id" column="Id" />
+		<result property="codeName" column="CodeName" />
+		<result property="description" column="Description" />
+		<result property="category" column="Category" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+		<result property="orgStructureId" column="OrgStructureId" />
+		<result property="hasChildren" column="HasChildren" />
+		<result property="displaySort" column="DisplaySort" />
+		<result property="levelNum" column="LevelNum" />
+		<result property="parentCode" column="ParentCode" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="codeName">
+			<![CDATA[B.CodeName=#codeName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="category">
+			<![CDATA[B.Category=#category#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="parentCode">
+			<![CDATA[A.ParentCode=#parentCode#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[B.Status=#status#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[B.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileOrgStructure">
+		INSERT INTO MobileOrgStructure (OrgStructureId, HasChildren, DisplaySort, LevelNum, ParentCode) 
+		VALUES (#orgStructureId#, #hasChildren#, #displaySort#, #levelNum#, #parentCode#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileOrgStructure">
+		UPDATE MobileOrgStructure 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="hasChildren">
+				HasChildren=#hasChildren#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="displaySort">
+				DisplaySort=#displaySort#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="levelNum">
+				LevelNum=#levelNum#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="parentCode">
+				ParentCode=#parentCode#
+		</isNotEmpty>
+		
+		WHERE OrgStructureId=#orgStructureId#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileOrgStructureResult" parameterClass="String">
+		SELECT A.*,B.* FROM MobileOrgStructure A
+		JOIN Code B ON A.OrgStructureId=B.Id
+		WHERE A.OrgStructureId=#orgStructureId#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileOrgStructure A
+		JOIN Code B ON A.OrgStructureId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileOrgStructureResult">
+		SELECT A.*,B.* FROM MobileOrgStructure A
+		JOIN Code B ON A.OrgStructureId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.DisplaySort DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileOrgStructureResult">
+		SELECT A.*,B.* FROM MobileOrgStructure A
+		JOIN Code B ON A.OrgStructureId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.DisplaySort DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MobileOrgStructure WHERE OrgStructureId=#orgStructureId#
+	</delete>
+</sqlMap>

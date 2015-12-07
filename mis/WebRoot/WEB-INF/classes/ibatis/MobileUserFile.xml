@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileUserFile">
+	<typeAlias alias="mobileUserFile" type="com.sg.mobile.entity.MobileUserFile" />
+	
+	<resultMap id="MobileUserFileResult" class="mobileUserFile">
+		<result property="id" column="Id" />
+		<result property="ownerUri" column="OwnerUri" />
+		<result property="fileName" column="FileName" />
+		<result property="fileSize" column="FileSize" />
+		<result property="fileType" column="FileType" />
+		<result property="fileUrl" column="FileUrl" />
+		<result property="location" column="Location" />
+		<result property="address" column="Address" />
+		<result property="description" column="Description" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="ownerUri">
+			<![CDATA[A.OwnerUri=#ownerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[A.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="fileType">
+			<![CDATA[A.FileType IN ($fileType$)]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileUserFile">
+		INSERT INTO MobileUserFile (Id, OwnerUri, FileName, FileSize, FileType, FileUrl, Location, Address, Description, Status, CreateTime, Creator) 
+		VALUES (#id#, #ownerUri#, #fileName#, #fileSize#, #fileType#, #fileUrl#, #location#, #address#, #description#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileUserFile">
+		UPDATE MobileUserFile 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="fileSize">
+				FileSize=#fileSize#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="description">
+				Description=#description#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileUserFileResult" parameterClass="String">
+		SELECT A.* FROM MobileUserFile A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileUserFile A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileUserFileResult">
+		SELECT A.* FROM MobileUserFile A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileUserFileResult">
+		SELECT A.* FROM MobileUserFile A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="String">
+		DELETE FROM MobileUserFile WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

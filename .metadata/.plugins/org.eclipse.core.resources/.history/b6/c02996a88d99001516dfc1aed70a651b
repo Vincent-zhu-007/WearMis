@@ -1,0 +1,330 @@
+package com.sg.mobile.service;
+
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.sg.dao.CodeDao;
+import com.sg.mobile.dao.MobileCompanyDao;
+import com.sg.mobile.entity.MobileCompany;
+import com.sg.mobile.entity.MobileUser;
+import com.sg.service.BaseEntityManager;
+import com.sg.util.MemCached;
+import com.sg.util.SendMqttUtil;
+
+@Service
+public class MobileCompanyService implements BaseEntityManager<MobileCompany> {
+	@Resource
+	private MobileCompanyDao mobileCompanyDao;
+	
+	@Resource
+	private CodeDao codeDao;
+	
+	@Autowired
+	private MobileUserService mobileUserService;
+
+	@Override
+	@Transactional
+	public void create(MobileCompany entity) {
+		// TODO Auto-generated method stub
+		mobileCompanyDao.create(entity);
+		codeDao.create(entity);
+	}
+
+	@Override
+	@Transactional
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		mobileCompanyDao.delete(id);
+		codeDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileCompany> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return mobileCompanyDao.find(params, pageParams);
+	}
+
+	@Override
+	public MobileCompany get(String id) {
+		// TODO Auto-generated method stub
+		return mobileCompanyDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileCompany> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return mobileCompanyDao.findForUnPage(params);
+	}
+
+	@Override
+	@Transactional
+	public void update(MobileCompany entity) {
+		// TODO Auto-generated method stub
+		mobileCompanyDao.update(entity);
+		codeDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return mobileCompanyDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<MobileCompany> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("Mobile公司列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("编码名称");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("描述");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("密钥");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("Mobile域名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 4);
+			cell.setCellValue("Mobile端口");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 5);
+			cell.setCellValue("Mobile应用名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 6);
+			cell.setCellValue("RPC域名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 7);
+			cell.setCellValue("RPC端口");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 8);
+			cell.setCellValue("RPC应用名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 9);
+			cell.setCellValue("免压IP1");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 10);
+			cell.setCellValue("免压IP2");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 11);
+			cell.setCellValue("架构层数");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 12);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 13);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				MobileCompany model = (MobileCompany) list.get(i);
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getCodeName());
+				row.createCell((short) 1).setCellValue(model.getDescription());
+				row.createCell((short) 2).setCellValue(model.getKeyWord());
+				row.createCell((short) 3).setCellValue(model.getMobileHost());
+				row.createCell((short) 4).setCellValue(model.getMobilePort());
+				row.createCell((short) 5).setCellValue(model.getMobileAppName());
+				row.createCell((short) 6).setCellValue(model.getRpcHost());
+				row.createCell((short) 7).setCellValue(model.getRpcPort());
+				row.createCell((short) 8).setCellValue(model.getRpcAppName());
+				row.createCell((short) 9).setCellValue(model.getUnzipServerIp1());
+				row.createCell((short) 10).setCellValue(model.getUnzipServerIp2());
+				row.createCell((short) 11).setCellValue(model.getOrgStructureLayerNum());
+				row.createCell((short) 12).setCellValue(model.getStatus());
+				cell = row.createCell((short) 13);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public List<MobileCompany> getMobileCompanyCache() {
+		List<MobileCompany> list = new ArrayList<MobileCompany>();
+		
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("MobileCompany");
+			if(obj != null && !obj.equals("")) {
+				String json = MemCached.getInstance().get("MobileCompany").toString();
+				
+				JSONArray array = JSONArray.fromObject(json);
+			    for(Iterator iter = array.iterator(); iter.hasNext();){
+			        JSONObject jsonObject = (JSONObject)iter.next();
+			        list.add((MobileCompany)JSONObject.toBean(jsonObject, MobileCompany.class));
+			    }
+			}else {
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("status", "Y");
+				list = this.findForUnPage(params);
+				
+				JSONArray jsonObject = JSONArray.fromObject(list);
+				
+				MemCached.getInstance().set("MobileCompany", jsonObject);
+			}
+		}
+		
+		return list;
+	}
+	
+	public void clearMobileCompanyCache() {
+		if(MemCached.used()){
+			Object obj = MemCached.getInstance().get("MobileCompany");
+			if(obj != null && !obj.equals("")) {
+				MemCached.getInstance().set("MobileCompany", "");
+			}
+		}
+	}
+	
+	public MobileCompany getMobileCompanyByComapnyCode(String companyCode){
+		List<MobileCompany> mobileCompanys = getMobileCompanyCache();
+		
+		for (MobileCompany mobileCompany : mobileCompanys) {
+			if(mobileCompany.getCodeName().equals(companyCode)){
+				return mobileCompany;
+			}
+		}
+		
+		return null;
+	}
+	
+	public MobileCompany getMobileCompanyByOwnerUri(String ownerUri){
+		Map<String, Object> mobileUserParams = new HashMap<String, Object>();
+		mobileUserParams.put("ownerUri", ownerUri);
+		mobileUserParams.put("status", "Y");
+		
+		List<MobileUser> mobileUsers = mobileUserService.findForUnPage(mobileUserParams);
+		
+		if(mobileUsers != null && mobileUsers.size() > 0){
+			MobileUser mobileUser = mobileUsers.get(0);
+			
+			String fullOrgStructure = mobileUser.getOrgStructure();
+			
+			if(fullOrgStructure != null && !fullOrgStructure.equals("")){
+				String rootOrgStructure = fullOrgStructure.split("_")[0];
+				
+				MobileCompany mobileCompany = getMobileCompanyByComapnyCode(rootOrgStructure);
+				
+				return mobileCompany;
+			}
+		}
+		
+		return null;
+	}
+	
+	public void runMqttPushMobileCompany(String ownerUri, String userName, String httpServerHost, String httpServerPort, String mqttServerHost, String mqttServerPort, MobileCompany mobileCompany){
+		JSONObject jsonObjectData = new JSONObject();
+		
+		jsonObjectData.put("cmd", "serverInformation");
+		
+		if(httpServerHost != null && !httpServerHost.equals("") && httpServerPort != null && !httpServerPort.equals("") && mqttServerHost != null && !mqttServerHost.equals("") && mqttServerPort != null && !mqttServerPort.equals("")){
+			jsonObjectData.put("httpServerHost", httpServerHost);
+			jsonObjectData.put("httpServerPort", httpServerPort);
+			jsonObjectData.put("mqttServerHost", mqttServerHost);
+			jsonObjectData.put("mqttServerPort", mqttServerPort);
+		}
+		
+		String mqttHost = mobileCompany.getRpcHost();
+		String mqttPort = mobileCompany.getRpcPort();
+		
+		String topic = "host/" + userName;
+		String content = jsonObjectData.toString();
+		String broker = mqttHost + ":" + mqttPort;
+		
+		SendMqttUtil.send(topic, content, broker);
+	}
+	
+	public String getMobileCompanyAccessToken(){
+		Map<String, Object> mobileUserParams = new HashMap<String, Object>();
+		mobileUserParams.put("ownerUri", ownerUri);
+		mobileUserParams.put("status", "Y");
+		
+		List<MobileUser> mobileUsers = mobileUserService.findForUnPage(mobileUserParams);
+		
+		if(mobileUsers != null && mobileUsers.size() > 0){
+			MobileUser mobileUser = mobileUsers.get(0);
+			
+			String fullOrgStructure = mobileUser.getOrgStructure();
+			
+			if(fullOrgStructure != null && !fullOrgStructure.equals("")){
+				String rootOrgStructure = fullOrgStructure.split("_")[0];
+				
+				MobileCompany mobileCompany = getMobileCompanyByComapnyCode(rootOrgStructure);
+				
+				return mobileCompany;
+			}
+		}
+		
+		return null;
+	}
+}

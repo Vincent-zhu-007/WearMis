@@ -1,0 +1,11 @@
+#Thu Sep 04 18:59:41 CST 2014
+org.eclipse.wst.jsdt.web.ui.JSDTHyperlinkDetector.SCRIPT=true
+lineNumberRuler=true
+org.eclipse.wst.jsdt.web.ui.JSDTHyperlinkDetector.SCRIPT.events=true
+org.eclipse.jst.jsp.ui.internal.hyperlink.JSPJavaHyperlinkDetector=true
+org.eclipse.wst.jsdt.web.ui.JSDTHyperlinkDetector.HTML=true
+org.eclipse.jst.jsp.ui.internal.hyperlink.XMLJavaHyperlinkDetector=true
+eclipse.preferences.version=1
+org.eclipse.jst.jsf.ui.elhyperlinkdetector=true
+org.eclipse.wst.jsdt.internal.ui.javaeditor.JavaElementHyperlinkDetector=true
+overviewRuler_migration=migrated_3.1

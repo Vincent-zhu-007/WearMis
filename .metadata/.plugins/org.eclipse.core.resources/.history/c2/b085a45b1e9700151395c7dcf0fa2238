@@ -1,0 +1,429 @@
+package com.sg.mobile.service;
+
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.dom4j.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.sg.mobile.dao.MobileContactDao;
+import com.sg.mobile.entity.MobileCompany;
+import com.sg.mobile.entity.MobileContact;
+import com.sg.mobile.entity.MobileContactMember;
+import com.sg.mobile.entity.MobileServerConfig;
+import com.sg.mobile.entity.MobileUser;
+import com.sg.service.BaseEntityManager;
+import com.sg.service.CodeService;
+import com.sg.util.SendMqttUtil;
+
+@Service
+public class MobileContactService implements BaseEntityManager<MobileContact> {
+	@Resource
+	private MobileContactDao mobileContactDao;
+	
+	@Autowired
+	private MobileContactMemberService mobileContactMemberService;
+	
+	@Autowired
+	private MobileUserService mobileUserService;
+	
+	@Autowired
+	private CodeService codeService;
+
+	@Override
+	public void create(MobileContact entity) {
+		// TODO Auto-generated method stub
+		mobileContactDao.create(entity);
+	}
+
+	@Override
+	public void delete(String id) {
+		// TODO Auto-generated method stub
+		mobileContactDao.delete(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileContact> findForPage(Map params, int... pageParams) {
+		// TODO Auto-generated method stub
+		return mobileContactDao.find(params, pageParams);
+	}
+
+	@Override
+	public MobileContact get(String id) {
+		// TODO Auto-generated method stub
+		return mobileContactDao.get(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<MobileContact> findForUnPage(Map params) {
+		// TODO Auto-generated method stub
+		return mobileContactDao.findForUnPage(params);
+	}
+
+	@Override
+	public void update(MobileContact entity) {
+		// TODO Auto-generated method stub
+		mobileContactDao.update(entity);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Long getTotalCount(Map params) {
+		// TODO Auto-generated method stub
+		return mobileContactDao.getTotalCount(params);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public String ExpExcel(List<MobileContact> list, String path) {
+		String filePath = "";
+		
+		if(list.size() > 0) {
+			Map<String, Object> statusMap = codeService.getCodeCacheMapByCategory("STATUS");
+			
+			/*第一步，创建一个webbook，对应一个Excel文件*/
+			HSSFWorkbook wb = new HSSFWorkbook();
+			/*第二步，在webbook中添加一个sheet,对应Excel文件中的sheet*/
+			HSSFSheet sheet = wb.createSheet("Mobile联系人列表");
+			/*第三步，在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short*/
+			HSSFRow row = sheet.createRow((int) 0);
+			/*第四步，创建单元格，并设置值表头 设置表头居中*/
+			HSSFCellStyle style = wb.createCellStyle();
+			/*左对齐*/
+			style.setAlignment(HSSFCellStyle.ALIGN_LEFT); 
+
+			HSSFCell cell = row.createCell((short) 0);
+			cell.setCellValue("用户地址");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 1);
+			cell.setCellValue("文件名");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 2);
+			cell.setCellValue("状态");
+			cell.setCellStyle(style);
+			
+			cell = row.createCell((short) 3);
+			cell.setCellValue("创建日期");
+			cell.setCellStyle(style);
+
+			/*第五步，写入实体数据 实际应用中这些数据从数据库得到，*/
+			for (int i = 0; i < list.size(); i++)
+			{
+				row = sheet.createRow((int) i + 1);
+				MobileContact model = (MobileContact) list.get(i);
+				
+				String status = statusMap.get(model.getStatus()).toString();
+				
+				/*第四步，创建单元格，并设置值*/
+				row.createCell((short) 0).setCellValue(model.getOwnerUri());
+				row.createCell((short) 1).setCellValue(model.getListFileName());
+				row.createCell((short) 2).setCellValue(status);
+				cell = row.createCell((short) 3);
+				cell.setCellValue(new SimpleDateFormat("yyyy-MM-dd").format(model.getCreateTime()));
+			}
+			
+			/*第六步，将文件存到指定位置*/
+			try
+			{
+				String fileName = UUID.randomUUID() + ".xls";
+				String tempFilePath = path + "\\" + fileName;
+				
+				FileOutputStream fout = new FileOutputStream(tempFilePath);
+				wb.write(fout);
+				fout.close();
+				
+				filePath = tempFilePath;
+			}
+			catch (Exception e)
+			{
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		return filePath;
+	}
+	
+	public String getMobileContactByOwnerUriAndListTypeJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String userName = "";
+		if(jsonObject.containsKey("userName")){
+			userName = jsonObject.opt("userName").toString();
+		}
+		
+		String listType = "";
+		if(jsonObject.containsKey("listType")){
+			listType = jsonObject.opt("listType").toString();
+		}
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		if(userName != null && !userName.equals("") && listType != null && !listType.equals("")){
+			MobileUser mobileUser = mobileUserService.getMobileUserByUserName(userName);
+			
+			if(mobileUser != null){
+				String ownerUri = mobileUser.getOwnerUri();
+				
+				String listFileName = ownerUri + "_" + listType;
+				
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("ownerUri", ownerUri);
+				params.put("listFileName", listFileName);
+				params.put("status", "Y");
+				List<MobileContact> list = findForUnPage(params);
+				
+				if(list != null && list.size() > 0){
+					MobileContact mobileContact = list.get(0);
+					
+					JSONObject jsonObjectData = new JSONObject();
+					jsonObjectData.put("ownerUri", mobileContact.getOwnerUri());
+					jsonObjectData.put("listFileName", mobileContact.getListFileName());
+					jsonObjectData.put("listType", mobileContact.getListType());
+					jsonObjectData.put("etag", mobileContact.getEtag());
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", jsonObjectData);
+					
+				}else {
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", "");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "没有相关的用户");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public String getMobileContactMemberByOwnerUriAndListTypeJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara){
+		String json = "";
+		
+		String paraJson = urlPara;
+		JSONObject jsonObject = JSONObject.fromObject(paraJson);
+		
+		String userName = "";
+		if(jsonObject.containsKey("userName")){
+			userName = jsonObject.opt("userName").toString();
+		}
+		
+		String listType = "";
+		if(jsonObject.containsKey("listType")){
+			listType = jsonObject.opt("listType").toString();
+		}
+		
+		JSONObject jsonObjectResult = new JSONObject();
+		
+		if(userName != null && !userName.equals("") && listType != null && !listType.equals("")){
+			MobileUser mobileUser = mobileUserService.getMobileUserByUserName(userName);
+			
+			if(mobileUser != null){
+				String ownerUri = mobileUser.getOwnerUri();
+				
+				String listFileName = ownerUri + "_" + listType;
+				
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("ownerUri", ownerUri);
+				params.put("listFileName", listFileName);
+				List<MobileContactMember> list = mobileContactMemberService.findForUnPage(params);
+				
+				if(list != null && list.size() > 0){
+					JSONArray jsonArray = new JSONArray();
+					
+					for (MobileContactMember mobileContactMember : list) {
+						JSONObject jsonObjectData = new JSONObject();
+						jsonObjectData.put("ownerUri", mobileContactMember.getOwnerUri());
+						jsonObjectData.put("displayName", mobileContactMember.getDisplayName());
+						jsonObjectData.put("mobilePhone", mobileContactMember.getMobilePhone() == null ? "" : mobileContactMember.getMobilePhone());
+						jsonObjectData.put("numButton", mobileContactMember.getNumButton() == null ? "" : mobileContactMember.getNumButton());
+						jsonObjectData.put("listFileName", mobileContactMember.getListFileName());
+						
+						jsonArray.add(jsonObjectData);
+					}
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", jsonArray);
+					
+				}else {
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", "");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "没有相关的用户");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "缺少必要参数");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+	
+	public void runMqttPushMobileContactMember(String ownerUri, String listType, String userName, MobileCompany mobileCompany){
+		JSONObject jsonObjectData = new JSONObject();
+		
+		String listFileName = ownerUri + "_" + listType;
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("ownerUri", ownerUri);
+		params.put("listFileName", listFileName);
+		List<MobileContactMember> list = mobileContactMemberService.findForUnPage(params);
+		
+		jsonObjectData.put("cmd", "contactList");
+		
+		if(list != null && list.size() > 0){
+			JSONArray jsonArray = new JSONArray();
+			
+			for (MobileContactMember mobileContactMember : list) {
+				String numButton = mobileContactMember.getNumButton() == null ? "" : mobileContactMember.getNumButton();
+				
+				if(numButton != null && !numButton.equals("")){
+					JSONObject jsonObjectMobileContactMember = new JSONObject();
+					
+					String shortNum = mobileContactMember.getShortNum() == null ? "" : mobileContactMember.getShortNum();
+					String mobilePhone = mobileContactMember.getMobilePhone() == null ? "" : mobileContactMember.getMobilePhone();
+					
+					jsonObjectMobileContactMember.put("numButton", numButton);
+					jsonObjectMobileContactMember.put("shortNum", shortNum);
+					jsonObjectMobileContactMember.put("mobilePhone", mobilePhone);
+					
+					jsonArray.add(jsonObjectMobileContactMember);
+				}
+			}
+			
+			jsonObjectData.put("data", jsonArray.toString());
+		}
+		
+		String mqttHost = mobileCompany.getRpcHost();
+		String mqttPort = mobileCompany.getRpcPort();
+		
+		String topic = "host/" + userName;
+		String content = jsonObjectData.toString();
+		String broker = mqttHost + ":" + mqttPort;
+		
+		SendMqttUtil.send(topic, content, broker);
+	}
+	
+	public void deleteMobileContact(String ownerUri, String listType){
+		Map<String, Object> mobileContactParams = new HashMap<String, Object>();
+		mobileContactParams.put("ownerUri", ownerUri);
+		mobileContactParams.put("listType", listType);
+		
+		List<MobileContact> mobileContacts = findForUnPage(mobileContactParams);
+		
+		if(mobileContacts != null && mobileContacts.size() > 0){
+			MobileContact mobileContact = mobileContacts.get(0);
+			
+			String listFileName = mobileContact.getListFileName();
+			
+			Map<String, Object> mobileContactMemberParams = new HashMap<String, Object>();
+			mobileContactMemberParams.put("ownerUri", ownerUri);
+			mobileContactMemberParams.put("listFileName", listFileName);
+			
+			List<MobileContactMember> mobileContactMembers = mobileContactMemberService.findForUnPage(mobileContactMemberParams);
+			
+			if(mobileContactMembers != null && mobileContactMembers.size() > 0){
+				for (MobileContactMember mobileContactMember : mobileContactMembers) {
+					mobileContactMemberService.delete(mobileContactMember.getId());
+				}
+			}
+			
+			delete(mobileContact.getId());
+		}
+	}
+	
+	public void deleteMobileContactMemberByContactMemberUri(String contactMemberUri){
+		Map<String, Object> mobileContactMemberParams = new HashMap<String, Object>();
+		mobileContactMemberParams.put("contactMemberUri", contactMemberUri);
+		
+		List<MobileContactMember> mobileContactMembers = mobileContactMemberService.findForUnPage(mobileContactMemberParams);
+		
+		if(mobileContactMembers != null && mobileContactMembers.size() > 0){
+			for (MobileContactMember mobileContactMember : mobileContactMembers) {
+				mobileContactMemberService.delete(mobileContactMember.getId());
+			}
+		}
+	}
+	
+	public void deleteMobileContactMemberByOwnerUri(String ownerUri, String listType){
+		Map<String, Object> mobileContactParams = new HashMap<String, Object>();
+		mobileContactParams.put("ownerUri", ownerUri);
+		mobileContactParams.put("listType", listType);
+		
+		List<MobileContact> mobileContacts = findForUnPage(mobileContactParams);
+		
+		if(mobileContacts != null && mobileContacts.size() > 0){
+			MobileContact mobileContact = mobileContacts.get(0);
+			
+			String listFileName = mobileContact.getListFileName();
+			
+			Map<String, Object> mobileContactMemberParams = new HashMap<String, Object>();
+			mobileContactMemberParams.put("ownerUri", ownerUri);
+			mobileContactMemberParams.put("listFileName", listFileName);
+			
+			List<MobileContactMember> mobileContactMembers = mobileContactMemberService.findForUnPage(mobileContactMemberParams);
+			
+			if(mobileContactMembers != null && mobileContactMembers.size() > 0){
+				for (MobileContactMember mobileContactMember : mobileContactMembers) {
+					mobileContactMemberService.delete(mobileContactMember.getId());
+				}
+			}
+		}
+	}
+	
+	public MobileContactMember getMobileContactMemberByOwnerUriAndListTypeAndNumButton(String ownerUri, String listType, String numButton){
+		Map<String, Object> mobileContactParams = new HashMap<String, Object>();
+		mobileContactParams.put("ownerUri", ownerUri);
+		mobileContactParams.put("listType", listType);
+		
+		List<MobileContact> mobileContacts = findForUnPage(mobileContactParams);
+		
+		if(mobileContacts != null && mobileContacts.size() > 0){
+			MobileContact mobileContact = mobileContacts.get(0);
+			
+			String listFileName = mobileContact.getListFileName();
+			
+			Map<String, Object> mobileContactMemberParams = new HashMap<String, Object>();
+			mobileContactMemberParams.put("ownerUri", ownerUri);
+			mobileContactMemberParams.put("listFileName", listFileName);
+			mobileContactMemberParams.put("numButton", numButton);
+			
+			List<MobileContactMember> mobileContactMembers = mobileContactMemberService.findForUnPage(mobileContactMemberParams);
+			
+			if(mobileContactMembers != null && mobileContactMembers.size() > 0){
+				MobileContactMember mobileContactMember = mobileContactMembers.get(0);
+				return mobileContactMember;
+			}
+		}
+	}
+}

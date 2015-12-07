@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="WeiXinInMobile">
+	<typeAlias alias="weiXinInMobile" type="com.sg.weixin.entity.WeiXinInMobile" />
+	
+	<resultMap id="WeiXinInMobileResult" class="weiXinInMobile">
+		<result property="id" column="Id" />
+		<result property="weiXinOwnerUri" column="WeiXinOwnerUri" />
+		<result property="mobileOwnerUri" column="MobileOwnerUri" />
+		<result property="numButton" column="NumButton" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="weiXinOwnerUri">
+			<![CDATA[A.WeiXinOwnerUri=#weiXinOwnerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="mobileOwnerUri">
+			<![CDATA[A.MobileOwnerUri=#mobileOwnerUri#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="numButton">
+			<![CDATA[A.NumButton=#numButton#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[A.Status=#status#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="weiXinInMobile">
+		INSERT INTO WeiXinInMobile (Id, WeiXinOwnerUri, MobileOwnerUri, NumButton, Status, CreateTime, Creator) 
+		VALUES (#id#, #weiXinOwnerUri#, #mobileOwnerUri#, #numButton#, #status#, NOW(), #creator#)
+	</insert>
+	
+	<update id="update" parameterClass="weiXinInMobile">
+		UPDATE WeiXinInMobile 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="mobileOwnerUri">
+				MobileOwnerUri=#mobileOwnerUri#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="mobileOwnerUri">
+				MobileOwnerUri=#mobileOwnerUri#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="status">
+				Status=#status#
+		</isNotEmpty>
+		,UpdateTime=NOW()
+		<isNotEmpty prepend="," property="updator">
+				Updator=#updator#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="WeiXinInMobileResult" parameterClass="String">
+		SELECT A.* FROM WeiXinInMobile A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM WeiXinInMobile A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="WeiXinInMobileResult">
+		SELECT A.* FROM WeiXinInMobile A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="WeiXinInMobileResult">
+		SELECT A.* FROM WeiXinInMobile A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY A.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM WeiXinInMobile WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

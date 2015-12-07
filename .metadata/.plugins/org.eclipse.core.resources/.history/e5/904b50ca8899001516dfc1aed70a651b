@@ -1,0 +1,320 @@
+package com.sg.weixin.controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.sg.controller.AbstractController;
+import com.sg.controller.JsonResult;
+import com.sg.entity.UserInfo;
+import com.sg.service.CodeService;
+import com.sg.util.DataGridModel;
+import com.sg.util.WxUtil;
+import com.sg.weixin.entity.WeiXinChannel;
+import com.sg.weixin.service.WeiXinChannelService;
+
+@Controller
+@RequestMapping("/weiXinChannel.do")
+public class WeiXinChannelController extends AbstractController {
+	private final Logger log = Logger.getLogger(WeiXinChannel.class);
+
+	@Autowired
+	private WeiXinChannelService weiXinChannelService;
+	
+	@Autowired
+	private CodeService codeService;
+
+	/**
+	 * 菜单栏页面展示
+	 * 
+	 * @return 页面路径
+	 */
+	@RequestMapping
+	public String management() {
+		return "weixin/channel_list";
+	}
+
+	@RequestMapping(params = "method=list")
+	@ResponseBody
+	public JsonResult list(HttpServletRequest request, WeiXinChannel entity,
+			DataGridModel dm) {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("description", entity.getDescription());
+
+		List<WeiXinChannel> list = weiXinChannelService.findForPage(params,
+				dm.getStartRow(), dm.getRows());
+		
+		Map<String, Object> channelHasChildrenMap = codeService.getCodeCacheMapByCategory("WEIXINCHANNELCHANNELHASCHILDREN");
+		Map<String, Object> channelLevelCodeMap = codeService.getCodeCacheMapByCategory("WEIXINCHANNELCHANNELLEVELCODE");
+		Map<String, Object> typeCodeMap = codeService.getCodeCacheMapByCategory("WEIXINCHANNELTYPE");
+		Map<String, Object> statusMap = codeService.getCodeCacheMapByCategory("STATUS");
+		
+		for (WeiXinChannel weiXinChannel : list) {
+			if(weiXinChannel.getChannelHasChildren() != null && !weiXinChannel.getChannelHasChildren().equals("")){
+				String channelHasChildren = channelHasChildrenMap.get(weiXinChannel.getChannelHasChildren()).toString();
+				weiXinChannel.setChannelHasChildren(channelHasChildren);
+			}
+			
+			if(weiXinChannel.getChannelLevelCode() != null && !weiXinChannel.getChannelLevelCode().equals("")){
+				String channelLevelCode = channelLevelCodeMap.get(weiXinChannel.getChannelLevelCode()).toString();
+				weiXinChannel.setChannelLevelCode(channelLevelCode);
+			}
+			
+			if(weiXinChannel.getType() != null && !weiXinChannel.getType().equals("")){
+				String type = typeCodeMap.get(weiXinChannel.getType()).toString();
+				weiXinChannel.setType(type);
+			}
+			
+			String status = statusMap.get(weiXinChannel.getStatus()).toString();
+			weiXinChannel.setStatus(status);
+		}
+
+		int totalCount = weiXinChannelService.getTotalCount(params).intValue();
+
+		JsonResult jsonResult = new JsonResult();
+		jsonResult.setTotal(totalCount);
+		jsonResult.setRows(list);
+		return jsonResult;
+	}
+
+	@RequestMapping(params = "method=add")
+	@ResponseBody
+	public JsonResult create(HttpServletRequest request, WeiXinChannel entity) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String sessionUserName = ((UserInfo)request.getSession().getAttribute("user")).getUserName();
+			
+			String uuid = UUID.randomUUID().toString();
+			entity.setId(uuid);
+			entity.setCreator(sessionUserName);
+			
+			weiXinChannelService.create(entity);
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("create WeiXinChannel exception reason:" + e.getMessage());
+		}
+		return result;
+	}
+
+	@RequestMapping(params = "method=update")
+	@ResponseBody
+	public JsonResult update(HttpServletRequest request, WeiXinChannel entity) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String sessionUserName = ((UserInfo)request.getSession().getAttribute("user")).getUserName();
+			
+			WeiXinChannel model = weiXinChannelService.get(entity.getId());
+			
+			model.setDescription(entity.getDescription());
+			model.setChannelHasChildren(entity.getChannelHasChildren());
+			model.setChannelLevelCode(entity.getChannelLevelCode());
+			model.setChannelParentCode(entity.getChannelParentCode());
+			model.setDisplaySort(entity.getDisplaySort());
+			
+			model.setType(entity.getType() == null ? "" : entity.getType());
+			model.setTypeValue(entity.getTypeValue() == null ? "" : entity.getTypeValue());
+			
+			model.setStatus(entity.getStatus());
+			model.setUpdator(sessionUserName);
+			
+			weiXinChannelService.update(model);
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("update WeiXinChannel exception reason:" + e.getMessage());
+		}
+		return result;
+	}
+
+	@RequestMapping(params = "method=get")
+	@ResponseBody
+	public JSONObject get(HttpServletRequest request, String id) {
+		WeiXinChannel entity = weiXinChannelService.get(id);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("id", entity.getId());
+		map.put("channelCodeName", entity.getChannelCodeName());
+		map.put("description", entity.getDescription());
+		map.put("channelHasChildren", entity.getChannelHasChildren());
+		map.put("channelLevelCode", entity.getChannelLevelCode());
+		map.put("channelParentCode", entity.getChannelParentCode());
+		
+		map.put("type", entity.getType() == null ? "" : entity.getType());
+		map.put("typeValue", entity.getTypeValue() == null ? "" : entity.getTypeValue());
+		
+		map.put("displaySort", entity.getDisplaySort());
+		map.put("status", entity.getStatus());
+		
+		JSONObject jsonObject = JSONObject.fromObject(map);
+		return jsonObject;
+	}
+	
+	@RequestMapping(params = "method=delete")
+	@ResponseBody
+	public JsonResult delete(HttpServletRequest request, String ids) {
+		JsonResult result = new JsonResult();
+
+		try {
+			String[] array = ids.split(",");
+			
+			for (String id : array) {
+				weiXinChannelService.delete(id);
+			}
+			
+			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			result.setMessage(null);
+			log.error("delete Channel exception reason:" + e.getMessage());
+		}
+		return result;
+	}
+	
+	@SuppressWarnings("deprecation")
+	@RequestMapping(params = "method=getfilepath")
+	public void getExpFilePath(HttpServletRequest request, HttpServletResponse response) {
+		String filePath = "";
+		
+		String description = request.getParameter("description");
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("description", description);
+		
+		List<WeiXinChannel> list = weiXinChannelService.findForUnPage(params);
+		
+		if(list.size() > 0) {
+			try {
+				String path = request.getRealPath("/") + "userfile\\xls";
+				
+				filePath = weiXinChannelService.ExpExcel(list, path);
+				
+			} catch (Exception e) {
+				// TODO: handle exception
+				System.out.print(e.getMessage());
+			}
+		}
+		
+		try {
+			filePath = response.encodeURL(filePath);
+			response.getWriter().write(filePath);
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.print(e.getMessage());
+		}
+	}
+	
+	@RequestMapping(params = "method=isExist")
+	@ResponseBody
+	public boolean isExist(HttpServletRequest request, String channelCodeName) {
+		boolean result = true;
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("channelCodeName", channelCodeName);
+		
+		List<WeiXinChannel> list = weiXinChannelService.findForUnPage(params);
+		if(list.size() > 0) {
+			result = false;
+		}
+		
+		return result;
+	}
+	
+	@RequestMapping(params = "method=initweixinchannelparentcode")
+	@ResponseBody
+	public List<Map<String, Object>> initWeiXinChannelParentCode(String channelLevelCode) {
+		List<WeiXinChannel> list = weiXinChannelService.GetWeiXinChannelCache();
+		List<Map<String, Object>> maps = new ArrayList<Map<String, Object>>();
+		
+		for (WeiXinChannel weiXinChannel : list) {
+			if(!weiXinChannel.getChannelLevelCode().equals(channelLevelCode)){
+				Map<String, Object> map = new HashMap<String, Object>();
+				map.put("id", weiXinChannel.getChannelCodeName());
+				map.put("text", weiXinChannel.getDescription() + "|" + weiXinChannel.getChannelLevelCode());
+				maps.add(map);
+			}
+		}
+		
+		return maps;
+	}
+	
+	@RequestMapping(params = "method=clearweixinchannelcache")
+	@ResponseBody
+	public JsonResult clearWeiXinChannelCache(HttpServletRequest request) {
+		JsonResult result = new JsonResult();
+    	
+    	try {
+    		weiXinChannelService.ClearWeiXinChannelCache();
+    		weiXinChannelService.GetWeiXinChannelCache();
+    		result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+		} catch (Exception e) {
+			// TODO: handle exception
+			result.setMessage(null);
+		}
+		
+		return result;
+	}
+	
+	@RequestMapping(params = "method=buildweixinchannelchannelparentcodetree")
+	@ResponseBody
+	public JSONArray buildWeiXinChannelChannelParentCodeTree(){
+		List<WeiXinChannel> list = weiXinChannelService.GetWeiXinChannelCache();
+		
+		List<WeiXinChannel> level1WeiXinChannel = new ArrayList<WeiXinChannel>();
+		
+		for (WeiXinChannel entity : list) {
+			if(entity.getChannelParentCode().equals("")) {
+				level1WeiXinChannel.add(entity);
+			}
+		}
+		
+		JSONArray jSONArray = weiXinChannelService.buildWeiXinChannelTree(level1WeiXinChannel);
+		
+		return jSONArray;
+	}
+	
+	@RequestMapping(params = "method=createweixinmenubywxinterface")
+	@ResponseBody
+	public JsonResult createWeiXinMenuByWxInterface(HttpServletRequest request) {
+		JsonResult result = new JsonResult();
+    	
+    	try {
+    		String accessToken = "";
+    		String jsonContent = weiXinChannelService.getWeiXinMenuJson();
+    		
+    		if(jsonContent != null && !jsonContent.equals("")){
+    			String strJsonObjectResult = WxUtil.processWxRequestByPostCreateMenu(accessToken, jsonContent);
+    			
+    			JSONObject jsonObjectResult = JSONObject.fromObject(strJsonObjectResult);
+    			
+    			if(jsonObjectResult.containsKey("errcode")){
+    				String errCode = jsonObjectResult.get("errcode").toString();
+    			}
+    			
+    			
+    			
+    			result.setMessage(AbstractController.AJAX_SUCCESS_CODE);
+    		}
+		} catch (Exception e) {
+			// TODO: handle exception
+			result.setMessage(null);
+		}
+		
+		return result;
+	}
+}

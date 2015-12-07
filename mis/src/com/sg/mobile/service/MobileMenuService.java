@@ -1,0 +1,252 @@
+package com.sg.mobile.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.dom4j.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.sg.mobile.entity.MobileCardReader;
+import com.sg.mobile.entity.MobileMenu;
+import com.sg.mobile.entity.MobileMenuConfig;
+import com.sg.mobile.entity.MobileServerConfig;
+import com.sg.mobile.entity.MobileUser;
+import com.sg.util.StringUtil;
+
+@Service
+public class MobileMenuService {
+	@Autowired
+	private MobileMenuConfigService mobileMenuConfigService;
+	
+	@Autowired
+	private MobileRoleService mobileRoleService;
+	
+	@Autowired
+	private MobileUserService mobileUserService;
+	
+	@Autowired
+	private MobileCardReaderService mobileCardReaderService;
+	
+	public List<MobileMenu> getMobileMenus(List<MobileMenuConfig> mobileMenuConfigs, String userName) {
+		
+		List<MobileMenu> menus = new ArrayList<MobileMenu>();
+		
+		List<MobileMenuConfig> level1MobileMenuConfigs = new ArrayList<MobileMenuConfig>();
+		for (MobileMenuConfig mobileMenuConfig : mobileMenuConfigs) {
+			if(mobileMenuConfig.getLevelCode().equals("Level1")) {
+				level1MobileMenuConfigs.add(mobileMenuConfig);
+			}
+		}
+		
+		for (MobileMenuConfig mobileMenuConfig : level1MobileMenuConfigs) {
+			menus.add(buildMobileMenu(mobileMenuConfig, mobileMenuConfigs));
+		}
+		
+		return menus;
+    }
+
+    public MobileMenu buildMobileMenu(MobileMenuConfig mobileMenuConfig, List<MobileMenuConfig> mobileMenuConfigs) {
+    	MobileMenu menu = new MobileMenu();
+        
+        menu.setMenuId(mobileMenuConfig.getCode());
+        menu.setMenuName(mobileMenuConfig.getDescription());
+        
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("parentCode", mobileMenuConfig.getCode());
+        
+        List<MobileMenuConfig> childMobileMenus = mobileMenuConfigService.findForUnPage(params);
+        
+        if(childMobileMenus != null && childMobileMenus.size() > 0) {
+        	
+        	List<MobileMenu> childMobileMenu = new ArrayList<MobileMenu>();
+        	menu.setChildMobileMenu(childMobileMenu);
+        	
+        	for (MobileMenuConfig mc : childMobileMenus) {
+        		menu.getChildMobileMenu().add((buildMobileMenu(mc, mobileMenuConfigs)));
+			}
+        }
+        
+        return menu;
+    }
+    
+    public JSONArray buildMobileMenuTree(List<MobileMenuConfig> mobileMenuConfigs, Map<String, Object> permission) {
+		JSONArray jSONArray = new JSONArray();
+		
+		if (mobileMenuConfigs != null && mobileMenuConfigs.size() > 0) {
+			for (int i = 0; i < mobileMenuConfigs.size(); i++) {
+				
+				if(!permission.containsKey(mobileMenuConfigs.get(i).getCode())){
+					continue;
+				}
+				
+				JSONObject jsonObject1 = new JSONObject();
+				jsonObject1.put("id", mobileMenuConfigs.get(i).getId());
+				jsonObject1.put("text", mobileMenuConfigs.get(i).getDescription());
+				
+				JSONObject jsonObject = JSONObject.fromObject(mobileMenuConfigs.get(i));
+				jsonObject1.put("attributes", jsonObject);
+				
+				List<MobileMenuConfig> mobileMenuConfigCache = mobileMenuConfigService.GetMobileMenuConfigCache();
+				List<MobileMenuConfig> childMobileMenuConfig = new ArrayList<MobileMenuConfig>();
+				for (MobileMenuConfig entity : mobileMenuConfigCache) {
+					if(entity.getParentCode().equals(mobileMenuConfigs.get(i).getCode()) && !entity.getLevelCode().equals("Button")) {
+						childMobileMenuConfig.add(entity);
+					}
+				}
+				
+				if (childMobileMenuConfig != null && childMobileMenuConfig.size() > 0) {
+					jsonObject1.put("state", "open");
+					jsonObject1.put("children", buildMobileMenuTree(childMobileMenuConfig, permission));
+				}
+				
+				jSONArray.add(jsonObject1);
+			}
+		}
+		return jSONArray;
+	}
+    
+    public JSONArray buildMobileRoleTree(List<MobileMenuConfig> mobileMenuConfigs, String userName) {
+		JSONArray jSONArray = new JSONArray();
+		
+		if (mobileMenuConfigs != null && mobileMenuConfigs.size() > 0) {
+			for (int i = 0; i < mobileMenuConfigs.size(); i++) {
+				
+				JSONObject jsonObject1 = new JSONObject();
+				jsonObject1.put("id", mobileMenuConfigs.get(i).getId());
+				jsonObject1.put("text", mobileMenuConfigs.get(i).getDescription());
+				
+				JSONObject jsonObject = JSONObject.fromObject(mobileMenuConfigs.get(i));
+				jsonObject1.put("attributes", jsonObject);
+				
+				List<MobileMenuConfig> mobileMenuConfigCache = mobileMenuConfigService.GetMobileMenuConfigCache();
+				List<MobileMenuConfig> childMobileMenuConfig = new ArrayList<MobileMenuConfig>();
+				for (MobileMenuConfig entity : mobileMenuConfigCache) {
+					if(entity.getParentCode().equals(mobileMenuConfigs.get(i).getCode())) {
+						childMobileMenuConfig.add(entity);
+					}
+				}
+				
+				if (childMobileMenuConfig != null && childMobileMenuConfig.size() > 0) {
+					jsonObject1.put("state", "open");
+					jsonObject1.put("children", buildMobileRoleTree(childMobileMenuConfig, userName));
+				}
+				
+				jSONArray.add(jsonObject1);
+			}
+		}
+		return jSONArray;
+	}
+    
+    public JSONArray buildMobileRoleTreeByPermission(List<MobileMenuConfig> mobileMenuConfigs, String userName, Map<String, Object> permission) {
+		JSONArray jSONArray = new JSONArray();
+		
+		if (mobileMenuConfigs != null && mobileMenuConfigs.size() > 0) {
+			for (int i = 0; i < mobileMenuConfigs.size(); i++) {
+				
+				JSONObject jsonObject1 = new JSONObject();
+				jsonObject1.put("id", mobileMenuConfigs.get(i).getId());
+				jsonObject1.put("text", mobileMenuConfigs.get(i).getDescription());
+				
+				JSONObject jsonObject = JSONObject.fromObject(mobileMenuConfigs.get(i));
+				jsonObject1.put("attributes", jsonObject);
+				
+				if(permission.containsKey(mobileMenuConfigs.get(i).getCode())){
+					jsonObject1.put("checked", true);
+				}
+				
+				List<MobileMenuConfig> mobileMenuConfigCache = mobileMenuConfigService.GetMobileMenuConfigCache();
+				List<MobileMenuConfig> childMobileMenuConfig = new ArrayList<MobileMenuConfig>();
+				for (MobileMenuConfig entity : mobileMenuConfigCache) {
+					if(entity.getParentCode().equals(mobileMenuConfigs.get(i).getCode())) {
+						childMobileMenuConfig.add(entity);
+					}
+				}
+				
+				if (childMobileMenuConfig != null && childMobileMenuConfig.size() > 0) {
+					jsonObject1.put("state", "open");
+					jsonObject1.put("children", buildMobileRoleTreeByPermission(childMobileMenuConfig, userName, permission));
+				}
+				
+				jSONArray.add(jsonObject1);
+			}
+		}
+		return jSONArray;
+	}
+    
+    public String getMobileActionJson(MobileServerConfig mobileServerConfig, Document doc, String urlPara) {
+    	String json = "";
+		
+		JSONObject jsonObjectResult = new JSONObject();
+    	
+    	String paraJson = urlPara;
+    	JSONObject jsonObjectPara = JSONObject.fromObject(paraJson);
+    	
+    	String ownerUri = "";
+		if(jsonObjectPara.containsKey("ownerUri")){
+			ownerUri = jsonObjectPara.opt("ownerUri").toString();
+		}
+		
+		String equipmentNo = "";
+		if(jsonObjectPara.containsKey("equipmentNo")){
+			equipmentNo = jsonObjectPara.opt("equipmentNo").toString();
+		}
+		
+		MobileUser mobileUser = mobileUserService.getMobileUserByOwnerUriAndCompanyCode(ownerUri, mobileServerConfig.getCompanyCode());
+		
+		if(mobileUser != null){
+			
+			MobileCardReader mobileCardReader = mobileCardReaderService.getMobileCardReaderByEquipmentNoInCache(equipmentNo);
+			
+			if(mobileCardReader != null){
+				String mobileRole = mobileUser.getMobileRole();
+				
+				if(mobileRole != null && !mobileRole.equals("")){
+					String sql = "";
+					String[] array = mobileRole.split(",");
+					for (String roleCode : array) {
+						sql += "'" + roleCode + "',";
+					}
+					
+					sql = StringUtil.rTrim(sql, ",");
+					
+					Map<String, Object> roleParams = new HashMap<String, Object>();
+					roleParams.put("codeName", sql);
+					
+					Map<String, Object> permission = mobileRoleService.findPermissionByRoles(roleParams);
+			    	
+					List<MobileMenuConfig> mobileMenuConfigs = mobileMenuConfigService.GetMobileMenuConfigCache();
+					
+					String actions = "";
+					for (MobileMenuConfig entity : mobileMenuConfigs) {
+						if(entity.getParentCode().equals(mobileCardReader.getAreaCode()) && permission.containsKey(entity.getCode())){
+							actions += entity.getCode() + ",";
+						}
+					}
+					
+					actions = StringUtil.rTrim(actions, ",");
+					
+					System.out.println(actions);
+					
+					jsonObjectResult.put("result", "1");
+					jsonObjectResult.put("data", actions);
+				}else {
+					jsonObjectResult.put("result", "0");
+					jsonObjectResult.put("message", "用户不具备终端角色");
+				}
+			}else {
+				jsonObjectResult.put("result", "0");
+				jsonObjectResult.put("message", "读卡器不存在");
+			}
+		}else {
+			jsonObjectResult.put("result", "0");
+			jsonObjectResult.put("message", "用户不存在");
+		}
+		
+		json = jsonObjectResult.toString();
+		
+		return json;
+	}
+}

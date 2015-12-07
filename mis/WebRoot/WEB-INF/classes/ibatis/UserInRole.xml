@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="UserInRole">
+	<typeAlias alias="userInRole" type="com.sg.entity.UserInRole" />
+	
+	<resultMap id="UserInRoleResult" class="userInRole">
+		<result property="userInRoleId" column="UserInRoleId" />
+		<result property="role" column="Role" />
+	</resultMap>
+	
+	<insert id="create" parameterClass="userInRole">
+		INSERT INTO UserInRole (UserInRoleId, Role) 
+		VALUES (#userInRoleId#, #role#)
+	</insert>
+	
+	<update id="update" parameterClass="userInRole">
+		UPDATE UserInRole 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="role">
+				Role=#role#
+		</isNotEmpty>
+		
+		WHERE UserInRoleId=#userInRoleId#
+		</dynamic>
+	</update>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM UserInRole WHERE UserInRoleId=#userInRoleId#
+	</delete>
+	
+</sqlMap>

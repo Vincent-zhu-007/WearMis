@@ -1,0 +1,35 @@
+@CHARSET "UTF-8";
+
+#northcontent{
+	float: left;
+	width: 100%;
+	height: 54px;
+	background-color: #f0f0f0;
+}
+
+#northcontent .northcontent_left{
+	float: left;
+	width: 200px;
+	height: 54px;
+	/* background-image: url("/mis/resources/images/logo.png"); */
+	background-repeat: no-repeat;
+}
+
+#northcontent .northcontent_right{
+	float: right;
+	height: 24px;
+	margin-top: 15px;
+	margin-right: 50px;
+}
+
+#northcontent .northcontent_right .northcontent_right_welcome{
+	float: left;
+	height: 24px;
+	line-height: 24px;
+}
+
+#northcontent .northcontent_right .northcontent_right_toolbar{
+	float: left;
+	height: 24px;
+	margin-left: 30px;
+}

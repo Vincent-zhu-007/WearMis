@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileUserFileShare">
+	<typeAlias alias="mobileUserFileShare" type="com.sg.mobile.entity.MobileUserFileShare" />
+	
+	<resultMap id="MobileUserFileShareResult" class="mobileUserFileShare">
+		<result property="id" column="Id" />
+		<result property="mobileUserFileId" column="MobileUserFileId" />
+		<result property="targetMemberUri" column="TargetMemberUri" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="mobileUserFileId">
+			<![CDATA[A.MobileUserFileId=#mobileUserFileId#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="targetMemberUri">
+			<![CDATA[A.TargetMemberUri=#targetMemberUri#]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileUserFileShare">
+		INSERT INTO MobileUserFileShare (Id, MobileUserFileId, TargetMemberUri) 
+		VALUES (#id#, #mobileUserFileId#, #targetMemberUri#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileUserFileShare">
+		UPDATE MobileUserFileShare 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="mobileUserFileId">
+				MobileUserFileId=#mobileUserFileId#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="targetMemberUri">
+				TargetMemberUri=#targetMemberUri#
+		</isNotEmpty>
+		
+		WHERE Id=#id#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileUserFileShareResult" parameterClass="String">
+		SELECT A.* FROM MobileUserFileShare A WHERE A.Id=#id#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileUserFileShare A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileUserFileShareResult">
+		SELECT A.* FROM MobileUserFileShare A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileUserFileShareResult">
+		SELECT A.* FROM MobileUserFileShare A
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<delete id="delete" parameterClass="String">
+		DELETE FROM MobileUserFileShare WHERE Id=#id#
+	</delete>
+	
+</sqlMap>

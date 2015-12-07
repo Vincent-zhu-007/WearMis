@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="MobileCompany">
+	<typeAlias alias="mobileCompany" type="com.sg.mobile.entity.MobileCompany" />
+	
+	<resultMap id="MobileCompanyResult" class="mobileCompany">
+		<result property="id" column="Id" />
+		<result property="codeName" column="CodeName" />
+		<result property="description" column="Description" />
+		<result property="category" column="Category" />
+		<result property="status" column="Status" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+		<result property="updator" column="Updator" />
+		<result property="companyId" column="CompanyId" />
+		<result property="keyWord" column="KeyWord" />
+		<result property="mobileHost" column="MobileHost" />
+		<result property="mobilePort" column="MobilePort" />
+		<result property="mobileAppName" column="MobileAppName" />
+		<result property="rpcHost" column="RpcHost" />
+		<result property="rpcPort" column="RpcPort" />
+		<result property="rpcAppName" column="RpcAppName" />
+		<result property="unzipServerIp1" column="UnzipServerIp1" />
+		<result property="unzipServerIp2" column="UnzipServerIp2" />
+		<result property="orgStructureLayerNum" column="OrgStructureLayerNum" />
+		<result property="appID" column="AppID" />
+		<result property="appSecret" column="AppSecret" />
+		<result property="accessToken" column="AccessToken" />
+		<result property="tokenCreateTime" column="TokenCreateTime" />
+	</resultMap>
+	
+	<sql id="findCriteria">
+		<isNotEmpty prepend="and" property="codeName">
+			<![CDATA[B.CodeName=#codeName#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="category">
+			<![CDATA[B.Category=#category#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="status">
+			<![CDATA[B.Status=#status#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="description">
+			<![CDATA[B.Description like CONCAT('%', #description#, '%')]]>
+		</isNotEmpty>
+	</sql>
+	
+	<insert id="create" parameterClass="mobileCompany">
+		INSERT INTO MobileCompany (CompanyId, KeyWord, MobileHost, MobilePort, MobileAppName, RpcHost, RpcPort, RpcAppName, UnzipServerIp1, UnzipServerIp2, OrgStructureLayerNum, AppID, AppSecret, AccessToken, TokenCreateTime) 
+		VALUES (#companyId#, #keyWord#, #mobileHost#, #mobilePort#, #mobileAppName#, #rpcHost#, #rpcPort#, #rpcAppName#, #unzipServerIp1#, #unzipServerIp2#, #orgStructureLayerNum#, #appID#, #appSecret#, #accessToken#, #tokenCreateTime#)
+	</insert>
+	
+	<update id="update" parameterClass="mobileCompany">
+		UPDATE MobileCompany 
+		<dynamic prepend="set">
+		<isNotEmpty prepend="," property="mobileHost">
+				MobileHost=#mobileHost#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="mobilePort">
+				MobilePort=#mobilePort#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="mobileAppName">
+				MobileAppName=#mobileAppName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="rpcHost">
+				RpcHost=#rpcHost#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="rpcPort">
+				RpcPort=#rpcPort#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="rpcAppName">
+				RpcAppName=#rpcAppName#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="unzipServerIp1">
+				UnzipServerIp1=#unzipServerIp1#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="unzipServerIp2">
+				UnzipServerIp2=#unzipServerIp2#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="orgStructureLayerNum">
+				OrgStructureLayerNum=#orgStructureLayerNum#
+		</isNotEmpty>
+		<isNotNull prepend="," property="appID">
+				AppID=#appID#
+		</isNotNull>
+		<isNotNull prepend="," property="appSecret">
+				AppSecret=#appSecret#
+		</isNotNull>
+		<isNotNull prepend="," property="accessToken">
+				AccessToken=#accessToken#
+		</isNotNull>
+		<isNotNull prepend="," property="tokenCreateTime">
+				TokenCreateTime=#tokenCreateTime#
+		</isNotNull>
+		
+		WHERE CompanyId=#companyId#
+		</dynamic>
+	</update>
+	
+	<select id="get"  resultMap="MobileCompanyResult" parameterClass="String">
+		SELECT A.*,B.* FROM MobileCompany A
+		JOIN Code B ON A.CompanyId=B.Id
+		WHERE A.CompanyId=#companyId#
+	</select>
+	
+	<select id="totalCount" resultClass="Long" parameterClass="map">
+		SELECT COUNT(*) FROM MobileCompany A
+		JOIN Code B ON A.CompanyId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+	</select>
+	
+	<select id="find" parameterClass="map" resultMap="MobileCompanyResult">
+		SELECT A.*,B.* FROM MobileCompany A
+		JOIN Code B ON A.CompanyId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY B.CreateTime DESC
+		limit #rowStart#, #pageSize#
+	</select>
+	
+	<select id="findunpage" parameterClass="map" resultMap="MobileCompanyResult">
+		SELECT A.*,B.* FROM MobileCompany A
+		JOIN Code B ON A.CompanyId=B.Id
+		<![CDATA[WHERE 1=1]]>
+		<include refid="findCriteria"/>
+		ORDER BY B.CreateTime DESC
+	</select>
+	
+	<delete id="delete" parameterClass="java.lang.String">
+		DELETE FROM MobileCompany WHERE CompanyId=#companyId#
+	</delete>
+</sqlMap>

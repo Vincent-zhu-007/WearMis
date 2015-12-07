@@ -1,0 +1,10 @@
+#Tue Jun 30 15:33:33 CST 2015
+TOMCAT_HOME=D\:\\Program Files\\Apache Software Foundation\\Tomcat 7.0
+TOMCAT_TEMP=D\:\\Program Files\\Apache Software Foundation\\Tomcat 7.0\\temp
+LIBRARY_PATH="D\:\\Program Files\\MyEclipse10\\Common\\binary\\com.sun.java.jdk.win32.x86_1.6.0.013\\bin;D\:\\Program Files\\Apache Software Foundation\\Tomcat 7.0\\bin"
+TOMCAT_BASE=D\:\\Program Files\\Apache Software Foundation\\Tomcat 7.0
+ENDORSED_DIRS="D\:\\Program Files\\Apache Software Foundation\\Tomcat 7.0/common/endorsed"
+eclipse.preferences.version=1
+JDK_HOME=D\:\\Program Files\\MyEclipse10\\Common\\binary\\com.sun.java.jdk.win32.x86_1.6.0.013
+OPT_VM_ARGS=-Xms256m -Xmx512m
+SERVER_ENABLEMENT=true
